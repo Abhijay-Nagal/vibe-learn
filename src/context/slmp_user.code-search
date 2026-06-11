@@ -1,0 +1,24 @@
+# Query: slmp_user
+# ContextLines: 1
+
+5 results - 2 files
+
+vibe-learn\src\app\page.tsx:
+  15    useEffect(() => {
+  16:     const savedUser = localStorage.getItem("vibelearn_user");
+  17      if (savedUser) {
+
+  50        // 3. Save to localStorage and redirect
+  51:       localStorage.setItem("vibelearn_user", JSON.stringify(user));
+  52        router.push("/dashboard");
+
+vibe-learn\src\context\UserContext.tsx:
+  25    useEffect(() => {
+  26:     const storedUser = localStorage.getItem("vibelearn_user");
+  27      if (storedUser) {
+
+  36      if (newUser) {
+  37:       localStorage.setItem("vibelearn_user", JSON.stringify(newUser));
+  38      } else {
+  39:       localStorage.removeItem("vibelearn_user");
+  40      }

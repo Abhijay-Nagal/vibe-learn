@@ -13,7 +13,7 @@ export default function Onboarding() {
 
   // Check if user is already logged in on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem("slmp_user");
+    const savedUser = localStorage.getItem("vibelearn_user");
     if (savedUser) {
       router.push("/dashboard");
     }
@@ -48,7 +48,7 @@ export default function Onboarding() {
       }
 
       // 3. Save to localStorage and redirect
-      localStorage.setItem("slmp_user", JSON.stringify(user));
+      localStorage.setItem("vibelearn_user", JSON.stringify(user));
       router.push("/dashboard");
       
     } catch (error) {

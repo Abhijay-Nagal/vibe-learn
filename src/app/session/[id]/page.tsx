@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type VideoState = {
+  id: string;
   yt_video_id: string;
   notes: string;
 } | null;
@@ -46,10 +47,33 @@ export default function SessionDashboard() {
     }
   };
 
-  const handleEndAndQuiz = () => {
+  // Inside src/app/session/[id]/page.tsx
+
+  const handleEndAndQuiz = async () => {
+    if (!activeVideo) return;
+    
     if (window.confirm("Are you sure you want to end this video and start the quiz?")) {
-      // In the next milestone, we will route to `/session/[id]/quiz/[videoId]`
-      alert("Quiz module coming in the next milestone!"); 
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/generate-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            videoId: activeVideo.id, // Assuming activeVideo has the Supabase UUID as 'id'
+            sessionId: sessionId,
+            notes: activeVideo.notes
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        // Route to the new quiz UI
+        router.push(`/session/${sessionId}/quiz/${data.quizId}`);
+      } catch (error: any) {
+        alert(error.message || "Failed to generate quiz.");
+        setIsLoading(false);
+      }
     }
   };
 

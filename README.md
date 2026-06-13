@@ -1,36 +1,286 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VibeLearn
 
-## Getting Started
+AI-Powered Personalized Learning and Adaptive Revision Platform
 
-First, run the development server:
+## Demo Video
+
+🎥 YouTube Demo: https://youtu.be/cPQ1sjfz0nI
+
+---
+
+## Project Overview
+
+VibeLearn is an AI-powered learning platform that transforms educational YouTube videos into structured study material.
+
+Instead of passively watching lectures, learners can generate AI-created notes, attempt quizzes, identify weak topics, and continuously revise concepts through adaptive revision quizzes.
+
+The platform converts educational video content into an active learning workflow using transcript extraction, Large Language Models (LLMs), and performance-driven revision.
+
+---
+
+## Key Features
+
+### Learning Phase
+
+* Extract transcripts from YouTube videos
+* Generate structured Markdown study notes
+* Store processed learning material
+* Organize content into study sessions
+* Revisit previously studied videos
+
+### Assessment Phase
+
+* Generate AI-created MCQ quizzes
+* Evaluate answers instantly
+* Display explanations
+* Track quiz performance
+
+### Adaptive Revision
+
+* Identify weak topics from quiz attempts
+* Aggregate and deduplicate weak topics
+* Generate revision quizzes focused on previously weak areas
+* Support continuous performance-driven revision
+
+### Historical Learning Repository
+
+* Access previously processed videos
+* View generated notes
+* Browse stored YouTube thumbnails
+* Continue learning from past sessions
+
+---
+
+## System Workflow
+
+```text
+User
+↓
+Create Study Session
+↓
+Paste YouTube URL
+↓
+Transcript Extraction
+↓
+AI Note Generation
+↓
+Store Notes
+↓
+Generate Quiz
+↓
+Attempt Quiz
+↓
+Track Weak Topics
+↓
+Generate Adaptive Revision Quiz
+```
+
+---
+
+## Screenshots
+
+### Dashboard
+
+![Dashboard](README-assets/dashboard.png)
+
+### Session Workspace
+
+![Session Workspace](README-assets/session-workspace.png)
+
+### AI-Generated Notes
+
+![Notes View](README-assets/notes-view.png)
+
+### Quiz Interface
+
+![Quiz Interface](README-assets/quiz-interface.png)
+
+---
+
+## System Architecture
+
+![Architecture Diagram](README-assets/architecture-diagram.png)
+
+The application follows a monolithic full-stack architecture using Next.js as both frontend and backend runtime.
+
+Components:
+
+* Next.js App Router
+* API Routes
+* Groq API (Llama 3.3 70B)
+* Supabase
+* PostgreSQL
+* youtube-transcript
+
+---
+
+## Database Design
+
+![ER Diagram](README-assets/erd-diagram.png)
+
+Database Tables:
+
+* users
+* sessions
+* videos
+* quizzes
+* quiz_attempts
+
+---
+
+## Tech Stack
+
+### Frontend
+
+* Next.js (App Router)
+* React
+* TypeScript
+* Tailwind CSS
+* Shadcn/UI
+* React Markdown
+
+### Backend
+
+* Next.js API Routes
+* TypeScript
+
+### Database
+
+* Supabase
+* PostgreSQL
+
+### AI
+
+* Groq API
+* Llama 3.3 70B Versatile
+
+### Additional Libraries
+
+* youtube-transcript
+* Lucide React
+
+---
+
+## Project Structure
+
+```text
+src/
+├── app/
+├── components/
+├── context/
+├── lib/
+└── types/
+
+public/
+
+docs/
+├── VibeLearn_Project_Report.pdf
+
+README-assets/
+├── dashboard.png
+├── session-workspace.png
+├── notes-view.png
+├── quiz-interface.png
+├── architecture-diagram.png
+└── erd-diagram.png
+```
+
+---
+
+## Installation
+
+### Clone Repository
+
+```bash
+git clone https://github.com/Abhijay-Nagal/vibe-learn.git
+cd vibe-learn
+```
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+### Configure Environment Variables
+
+Create:
+
+```env
+.env.local
+```
+
+using:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GROQ_API_KEY=your_groq_api_key
+```
+
+### Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Current Status
 
-To learn more about Next.js, take a look at the following resources:
+### Phase-I MVP
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Implemented:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+* User onboarding
+* Session management
+* AI note generation
+* Quiz generation
+* Quiz evaluation
+* Weak topic tracking
+* Adaptive revision quizzes
+* Historical learning repository
+* Groq integration
+* Supabase integration
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Future Scope
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+* Flashcard generation
+* Progress analytics dashboard
+* RAG-based retrieval
+* Vector search
+* Recommendation engine
+* Enhanced authentication
+* Mobile application
+
+---
+
+## Documentation
+
+📄 Project Report:
+
+`docs/VibeLearn_Project_Report.pdf`
+
+---
+
+## Author
+
+**Abhijay Nagal**
+
+Computer Science Engineering Student
+
+Thapar Institute of Engineering and Technology
+
+---
+
+## License
+
+This project is intended for academic and educational purposes.

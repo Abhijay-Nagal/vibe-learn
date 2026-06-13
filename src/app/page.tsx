@@ -3,21 +3,29 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/button"; // shadcn button
-import { Input } from "@/components/ui/input"; // shadcn input
+import { useUser } from "@/context/UserContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function Onboarding() {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
-  // Check if user is already logged in on mount
+  const router = useRouter();
+  const {
+  user,
+  setUser,
+  isLoading: isUserLoading,
+} = useUser();
+
+  // Redirect logged-in users only after UserContext finishes loading
   useEffect(() => {
-    const savedUser = localStorage.getItem("vibelearn_user");
-    if (savedUser) {
-      router.push("/dashboard");
+    if (isUserLoading) return;
+
+    if (user) {
+      router.replace("/dashboard");
     }
-  }, [router]);
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,9 +56,8 @@ export default function Onboarding() {
       }
 
       // 3. Save to localStorage and redirect
-      localStorage.setItem("vibelearn_user", JSON.stringify(user));
-      router.push("/dashboard");
-      
+      setUser(user);
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
       alert("Something went wrong. Please try again.");
@@ -58,6 +65,14 @@ export default function Onboarding() {
       setIsLoading(false);
     }
   };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-zinc-50 dark:bg-zinc-950">
@@ -70,7 +85,7 @@ export default function Onboarding() {
             Enter your username to pick up where you left off.
           </p>
         </div>
-        
+
         <form onSubmit={handleLogin} className="space-y-4">
           <Input
             type="text"

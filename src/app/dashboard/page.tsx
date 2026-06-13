@@ -24,7 +24,7 @@ type Session = {
 export default function Dashboard() {
   const { user, isLoading: isUserLoading } = useUser();
   const router = useRouter();
-  
+
   const [sessions, setSessions] = useState<Session[]>([]);
   const [newSessionTitle, setNewSessionTitle] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -33,7 +33,7 @@ export default function Dashboard() {
   // Protect the route and fetch sessions
   useEffect(() => {
     if (!isUserLoading && !user) {
-      router.push("/"); // Redirect to onboarding if not logged in
+      router.replace("/");
       return;
     }
 
@@ -44,7 +44,7 @@ export default function Dashboard() {
 
   const fetchSessions = async () => {
     if (!user) return;
-    
+
     const { data, error } = await supabase
       .from("sessions")
       .select("*")
@@ -56,6 +56,7 @@ export default function Dashboard() {
     } else {
       setSessions(data || []);
     }
+
     setIsLoadingSessions(false);
   };
 
@@ -77,13 +78,15 @@ export default function Dashboard() {
       console.error("Error creating session:", error);
       alert("Failed to create session.");
     } else if (data) {
-      // Redirect to the new Session Dashboard
       router.push(`/session/${data.id}`);
     }
   };
 
   const handleEndSession = async (sessionId: string) => {
-    const confirmEnd = window.confirm("Are you sure you want to end this session? You will move to the revision phase.");
+    const confirmEnd = window.confirm(
+      "Are you sure you want to end this session? You will move to the revision phase."
+    );
+
     if (!confirmEnd) return;
 
     const { error } = await supabase
@@ -94,18 +97,21 @@ export default function Dashboard() {
     if (error) {
       console.error("Error ending session:", error);
     } else {
-      fetchSessions(); // Refresh the grid to show the green button
+      fetchSessions();
     }
   };
 
   if (isUserLoading || isLoadingSessions) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   return (
     <main className="min-h-screen p-8 md:p-24 bg-zinc-50 dark:bg-zinc-950">
       <div className="max-w-5xl mx-auto space-y-8">
-        
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
@@ -120,10 +126,12 @@ export default function Dashboard() {
             <DialogTrigger asChild>
               <Button size="lg">+ New Session</Button>
             </DialogTrigger>
+
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create a New Study Session</DialogTitle>
               </DialogHeader>
+
               <form onSubmit={handleCreateSession} className="space-y-4 pt-4">
                 <Input
                   placeholder="e.g., Graphs-Striver"
@@ -131,7 +139,12 @@ export default function Dashboard() {
                   onChange={(e) => setNewSessionTitle(e.target.value)}
                   required
                 />
-                <Button type="submit" className="w-full" disabled={isCreating}>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isCreating}
+                >
                   {isCreating ? "Creating..." : "Create & Enter"}
                 </Button>
               </form>
@@ -148,20 +161,26 @@ export default function Dashboard() {
             {sessions.map((session) => (
               <Card key={session.id} className="flex flex-col justify-between">
                 <CardHeader>
-                  <CardTitle className="truncate">{session.title}</CardTitle>
+                  <CardTitle className="truncate">
+                    {session.title}
+                  </CardTitle>
                 </CardHeader>
+
                 <CardFooter>
                   {session.status === "active" ? (
                     <div className="flex gap-2 w-full">
-                      <Button 
-                        variant="default" 
+                      <Button
+                        variant="default"
                         className="w-full"
-                        onClick={() => router.push(`/session/${session.id}`)}
+                        onClick={() =>
+                          router.push(`/session/${session.id}`)
+                        }
                       >
                         Continue
                       </Button>
-                      <Button 
-                        variant="destructive" 
+
+                      <Button
+                        variant="destructive"
                         className="w-full"
                         onClick={() => handleEndSession(session.id)}
                       >
@@ -169,9 +188,11 @@ export default function Dashboard() {
                       </Button>
                     </div>
                   ) : (
-                    <Button 
+                    <Button
                       className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => router.push(`/session/${session.id}/revision`)}
+                      onClick={() =>
+                        router.push(`/session/${session.id}/revision`)
+                      }
                     >
                       Do Revision
                     </Button>

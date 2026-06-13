@@ -87,8 +87,14 @@ ${transcriptText.substring(0, 30000)}`;
       success: true,
       video: videoRecord,
     });
-  } catch (error: any) {
-    console.error("API Error:", error);
+  } 
+  catch (error: any) {
+  console.error("FULL API ERROR:", {
+    name: error?.name,
+    message: error?.message,
+    stack: error?.stack,
+    error,
+  });
 
     if (error.message?.includes("Transcript is disabled")) {
       return NextResponse.json(

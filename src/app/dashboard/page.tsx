@@ -1,5 +1,6 @@
 "use client";
 
+
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -106,6 +107,29 @@ export default function Dashboard() {
       fetchSessions();
     }
   };
+  const handleDeleteSession = async (sessionId: string) => {
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this session? This will permanently erase all associated videos, notes, quizzes, and progress data."
+  );
+
+  if (!confirmDelete) return;
+
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("id", sessionId);
+
+    if (error) throw error;
+
+    setSessions((prev) =>
+      prev.filter((session) => session.id !== sessionId)
+    );
+  } catch (error) {
+    console.error("Error deleting session:", error);
+    alert("Failed to delete session.");
+  }
+};
 
   if (isUserLoading || isLoadingSessions) {
     return (
@@ -172,38 +196,46 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
 
-                <CardFooter>
-                  {session.status === "active" ? (
-                    <div className="flex gap-2 w-full">
-                      <Button
-                        variant="default"
-                        className="w-full"
-                        onClick={() =>
-                          router.push(`/session/${session.id}`)
-                        }
-                      >
-                        Continue
-                      </Button>
+              <CardFooter className="flex flex-col gap-2">
+  {session.status === "active" ? (
+    <div className="flex gap-2 w-full">
+      <Button
+        variant="default"
+        className="w-full"
+        onClick={() =>
+          router.push(`/session/${session.id}`)
+        }
+      >
+        Continue
+      </Button>
 
-                      <Button
-                        variant="destructive"
-                        className="w-full"
-                        onClick={() => handleEndSession(session.id)}
-                      >
-                        End Session
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() =>
-                        router.push(`/session/${session.id}/revision`)
-                      }
-                    >
-                      Do Revision
-                    </Button>
-                  )}
-                </CardFooter>
+      <Button
+        variant="destructive"
+        className="w-full"
+        onClick={() => handleEndSession(session.id)}
+      >
+        End Session
+      </Button>
+    </div>
+  ) : (
+    <Button
+      className="w-full bg-green-600 hover:bg-green-700 text-white"
+      onClick={() =>
+        router.push(`/session/${session.id}/revision`)
+      }
+    >
+      Do Revision
+    </Button>
+  )}
+
+  <Button
+    variant="destructive"
+    className="w-full"
+    onClick={() => handleDeleteSession(session.id)}
+  >
+    Delete Session
+  </Button>
+</CardFooter>
               </Card>
             ))}
           </div>

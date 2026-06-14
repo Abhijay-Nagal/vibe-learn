@@ -2,7 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { groq } from "@/lib/groq";
 
-
 // Allow this specific API route to run for up to 60 seconds on Vercel
 export const maxDuration = 60;
 
@@ -20,6 +19,7 @@ export async function POST(req: Request) {
       { status: 401 }
     );
   }
+
   try {
     const { videoId, sessionId, notes } = await req.json();
 
@@ -29,6 +29,66 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    // =====================================================
+    // GET CURRENT VIDEO INFO
+    // =====================================================
+
+    const { data: currentVideo, error: videoError } = await supabase
+      .from("videos")
+      .select("yt_video_id")
+      .eq("id", videoId)
+      .single();
+
+    if (videoError || !currentVideo) {
+      throw new Error("Video not found");
+    }
+
+    // =====================================================
+    // QUIZ CACHE CHECK
+    // =====================================================
+
+    const { data: cachedQuiz } = await supabase
+      .from("quizzes")
+      .select("questions")
+      .eq("yt_video_id", currentVideo.yt_video_id)
+      .eq("quiz_type", "video_quiz")
+      .limit(1)
+      .maybeSingle();
+
+    if (cachedQuiz) {
+      console.log("QUIZ CACHE HIT: Reusing existing quiz.");
+
+      const { data: clonedQuiz, error: cloneError } = await supabase
+        .from("quizzes")
+        .insert([
+          {
+            session_id: sessionId,
+            video_id: videoId,
+            yt_video_id: currentVideo.yt_video_id,
+            quiz_type: "video_quiz",
+            questions: cachedQuiz.questions,
+          },
+        ])
+        .select()
+        .single();
+
+      if (cloneError) {
+        throw cloneError;
+      }
+
+      return NextResponse.json({
+        success: true,
+        quizId: clonedQuiz.id,
+        cached: true,
+      });
+    }
+
+    console.log("QUIZ CACHE MISS: Generating new quiz.");
+
+    // =====================================================
+    // GENERATE NEW QUIZ
+    // =====================================================
 
     const prompt = `You are an expert technical mentor.
 
@@ -76,7 +136,6 @@ ${notes.substring(0, 30000)}`;
       throw new Error("Empty quiz response received");
     }
 
-    // Remove markdown wrappers if model returns ```json ... ```
     const cleanedResponse = responseText
       .replace(/```json/g, "")
       .replace(/```/g, "")
@@ -84,13 +143,17 @@ ${notes.substring(0, 30000)}`;
 
     const quizData = JSON.parse(cleanedResponse);
 
-    // Save generated quiz
+    // =====================================================
+    // SAVE NEW QUIZ
+    // =====================================================
+
     const { data: quizRecord, error: dbError } = await supabase
       .from("quizzes")
       .insert([
         {
           session_id: sessionId,
           video_id: videoId,
+          yt_video_id: currentVideo.yt_video_id,
           quiz_type: "video_quiz",
           questions: quizData,
         },
@@ -98,11 +161,14 @@ ${notes.substring(0, 30000)}`;
       .select()
       .single();
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      throw dbError;
+    }
 
     return NextResponse.json({
       success: true,
       quizId: quizRecord.id,
+      cached: false,
     });
   } catch (error: any) {
     console.error("Quiz Generation Error:", error);

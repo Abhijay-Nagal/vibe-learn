@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { Supadata } from "@supadata/js";
 import { groq } from "@/lib/groq";
 
-
 const supadata = new Supadata({
   apiKey: process.env.SUPADATA_API_KEY!,
 });
@@ -11,6 +10,7 @@ const supadata = new Supadata({
 export async function POST(req: Request) {
   const supabase = await createClient();
 
+  // Secure API Route
   const {
     data: { user },
     error: authError,
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       { status: 401 }
     );
   }
+
   try {
     const { youtubeUrl, sessionId } = await req.json();
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Extract Video ID
+    // Extract YouTube Video ID
     const videoIdMatch = youtubeUrl.match(
       /(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
     );
@@ -46,26 +47,112 @@ export async function POST(req: Request) {
       );
     }
 
-    // Fetch transcript using Supadata
-    const transcriptResult = await supadata.youtube.transcript({
-      url: youtubeUrl,
-    });
+    // =====================================================
+    // PREVENT DUPLICATES IN SAME SESSION
+    // =====================================================
 
-let transcriptText = "";
+    const { data: existingVideo } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("yt_video_id", videoId)
+      .maybeSingle();
 
-if (typeof transcriptResult.content === "string") {
-  transcriptText = transcriptResult.content;
-} else {
-  transcriptText = transcriptResult.content
-    .map((item: any) => item.text)
-    .join(" ");
-}
+    if (existingVideo) {
+      console.log(
+        "VIDEO ALREADY EXISTS IN THIS SESSION"
+      );
 
-    if (!transcriptText) {
-      throw new Error("Failed to fetch transcript");
+      return NextResponse.json({
+        success: true,
+        video: existingVideo,
+        cached: true,
+        duplicate: true,
+      });
     }
 
-    // Generate notes with Groq
+    // =====================================================
+    // PHASE 2.2 - INTELLIGENT CACHE CHECK
+    // =====================================================
+
+    const { data: cachedVideo } = await supabase
+      .from("videos")
+      .select(
+        "notes, title, thumbnail_url, yt_url"
+      )
+      .eq("yt_video_id", videoId)
+      .not("notes", "is", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (cachedVideo) {
+      console.log(
+        "CACHE HIT: Cloning existing video notes."
+      );
+
+      const { data: clonedVideo, error: cloneError } =
+        await supabase
+          .from("videos")
+          .insert([
+            {
+              session_id: sessionId,
+              yt_video_id: videoId,
+              yt_url:
+                cachedVideo.yt_url || youtubeUrl,
+              notes: cachedVideo.notes,
+              title: cachedVideo.title,
+              thumbnail_url:
+                cachedVideo.thumbnail_url,
+            },
+          ])
+          .select()
+          .single();
+
+      if (cloneError) {
+        throw cloneError;
+      }
+
+      return NextResponse.json({
+        success: true,
+        video: clonedVideo,
+        cached: true,
+      });
+    }
+
+    console.log(
+      "CACHE MISS: Fetching transcript and generating notes."
+    );
+
+    // =====================================================
+    // NORMAL PIPELINE
+    // =====================================================
+
+    const transcriptResult =
+      await supadata.youtube.transcript({
+        url: youtubeUrl,
+      });
+
+    let transcriptText = "";
+
+    if (
+      typeof transcriptResult.content ===
+      "string"
+    ) {
+      transcriptText =
+        transcriptResult.content;
+    } else {
+      transcriptText =
+        transcriptResult.content
+          .map((item: any) => item.text)
+          .join(" ");
+    }
+
+    if (!transcriptText) {
+      throw new Error(
+        "Failed to fetch transcript"
+      );
+    }
+
     const prompt = `You are a technical mentor. Generate highly structured, comprehensive study notes in Markdown format based on the following video transcript.
 
 Requirements:
@@ -78,28 +165,37 @@ Requirements:
 
 Transcript:
 
-${transcriptText.substring(0, 30000)}`;
+${transcriptText.substring(
+  0,
+  30000
+)}`;
 
-    const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      temperature: 0.3,
-    });
+    const completion =
+      await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+      });
 
     const notesMarkdown =
-      completion.choices[0]?.message?.content || "";
+      completion.choices[0]?.message
+        ?.content || "";
 
     if (!notesMarkdown) {
-      throw new Error("Failed to generate notes");
+      throw new Error(
+        "Failed to generate notes"
+      );
     }
 
-    // Save to Supabase
-    const { data: videoRecord, error: dbError } = await supabase
+    const {
+      data: videoRecord,
+      error: dbError,
+    } = await supabase
       .from("videos")
       .insert([
         {
@@ -119,6 +215,7 @@ ${transcriptText.substring(0, 30000)}`;
     return NextResponse.json({
       success: true,
       video: videoRecord,
+      cached: false,
     });
   } catch (error: any) {
     console.error("FULL API ERROR:", {
@@ -130,7 +227,9 @@ ${transcriptText.substring(0, 30000)}`;
 
     return NextResponse.json(
       {
-        error: error?.message || "Failed to process video.",
+        error:
+          error?.message ||
+          "Failed to process video.",
       },
       { status: 500 }
     );

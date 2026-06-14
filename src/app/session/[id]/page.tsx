@@ -8,7 +8,17 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { PlayCircle, FileText, CheckCircle } from "lucide-react"; 
+import {
+  PlayCircle,
+  FileText,
+  CheckCircle,
+  Sparkles,
+  BookOpen,
+  Video,
+  ArrowLeft,
+  X,
+  FolderOpen
+} from "lucide-react";
 
 type VideoState = {
   id: string;
@@ -90,7 +100,7 @@ export default function SessionDashboard() {
   const handleEndAndQuiz = async () => {
     if (!activeVideo) return;
     
-    if (window.confirm("Are you sure you want to end this video and start the quiz?")) {
+    if (window.confirm("Are you sure you want to end this video and generate an AI quiz?")) {
       setIsLoading(true);
       try {
         const res = await fetch("/api/generate-quiz", {
@@ -136,61 +146,67 @@ export default function SessionDashboard() {
   };
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950">
+    <main className="min-h-screen p-4 md:p-8 bg-background">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Top Bar Navigation */}
-        <header className="flex justify-between items-center">
-          <Button variant="outline" onClick={() => router.push("/dashboard")}>
-            &larr; Back to Dashboard
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Button variant="outline" onClick={() => router.push("/dashboard")} className="shadow-sm">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard
           </Button>
-          {!activeVideo && (
-            <Button variant="destructive" onClick={handleEndSession}>
+          
+          {!activeVideo ? (
+            <Button variant="destructive" onClick={handleEndSession} className="shadow-sm">
               End Session
             </Button>
-          )}
-          {activeVideo && (
-            <div className="flex gap-2">
+          ) : (
+            <div className="flex bg-muted p-1 rounded-lg border border-border">
               <Button 
-                variant="secondary" 
+                variant={videoOnlyMode ? "secondary" : "ghost"} 
+                size="sm"
+                className={`text-sm ${videoOnlyMode ? "bg-background shadow-sm" : "text-muted-foreground"}`}
                 onClick={() => {
                   setVideoOnlyMode(!videoOnlyMode);
-                  setNotesOnlyMode(false); // Disable notes mode if video mode toggled
+                  setNotesOnlyMode(false);
                 }}
               >
-                {videoOnlyMode ? "Exit Video Mode" : "Video Only"}
+                <Video className="w-4 h-4 mr-2" /> Video View
               </Button>
               <Button 
-                variant="secondary" 
-                className="bg-zinc-200 hover:bg-zinc-300 text-zinc-900"
+                variant={notesOnlyMode ? "secondary" : "ghost"} 
+                size="sm"
+                className={`text-sm ${notesOnlyMode ? "bg-background shadow-sm" : "text-muted-foreground"}`}
                 onClick={() => {
                   setNotesOnlyMode(!notesOnlyMode);
-                  setVideoOnlyMode(false); // Disable video mode if notes mode toggled
+                  setVideoOnlyMode(false);
                 }}
               >
-                {notesOnlyMode ? "Exit Notes Mode" : "Notes Only"}
+                <FileText className="w-4 h-4 mr-2" /> Focus Notes
               </Button>
             </div>
           )}
         </header>
 
-        {/* Input State & Folders */}
+        {/* Dynamic Workspace State */}
         {isLoading ? (
-  <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
-    <LoadingScreen
-      message={
-        activeVideo
-          ? "Crafting your custom quiz..."
-          : "Fetching Transcript & Analyzing..."
-      }
-    />
-  </div>
-) : !activeVideo ? (
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <LoadingScreen
+              message={
+                activeVideo
+                  ? "Crafting your custom AI quiz..."
+                  : "Fetching Transcript & Analyzing..."
+              }
+            />
+          </div>
+        ) : !activeVideo ? (
           <div className="space-y-12">
-            {/* The Ingestion Form */}
-            <div className="bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-sm text-center max-w-2xl mx-auto mt-8 border border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-2xl font-bold mb-2">Add a Video to Study</h2>
-              <p className="text-zinc-500 mb-6 text-sm">Paste a YouTube link below to generate AI notes and a custom quiz.</p>
+            {/* The Premium Ingestion Form */}
+            <div className="bg-card p-8 md:p-12 rounded-2xl shadow-sm text-center max-w-2xl mx-auto mt-8 border border-border transition-all duration-200 hover:shadow-md">
+              <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
+                <Video size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-3">Add a Video to your Workspace</h2>
+              <p className="text-muted-foreground mb-8 text-sm md:text-base">Paste a YouTube educational link below. Our AI will instantly convert it into structured markdown notes and adaptive quizzes.</p>
               <form onSubmit={handleIngestVideo} className="space-y-4">
                 <Input
                   placeholder="https://www.youtube.com/watch?v=..."
@@ -198,50 +214,55 @@ export default function SessionDashboard() {
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   disabled={isLoading}
                   required
+                  className="h-12 text-base focus-visible:ring-primary shadow-sm"
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
-  {isLoading
-    ? "Fetching Transcript & Analyzing..."
-    : "Let's Begin"}
-</Button>
+                <Button type="submit" size="lg" className="w-full bg-ai hover:bg-ai/90 text-ai-foreground font-semibold shadow-sm transition-transform active:scale-[0.98]" disabled={isLoading}>
+                  <Sparkles className="mr-2 h-5 w-5" /> Generate Notes & Workspace
+                </Button>
               </form>
             </div>
 
             {/* The Folders Grid */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                <CheckCircle className="text-green-600 w-6 h-6" /> Completed Video Folders
-              </h3>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <CheckCircle className="text-success w-5 h-5" /> 
+                <h3 className="text-lg font-semibold text-foreground">Processed Modules</h3>
+              </div>
+              
               {isLoadingFolders ? (
-                <p className="text-zinc-500">Loading folders...</p>
+                <div className="animate-pulse flex gap-4">
+                  {[1,2,3].map(i => <div key={i} className="h-48 w-full bg-muted rounded-xl"></div>)}
+                </div>
               ) : folders.length === 0 ? (
-                <p className="text-zinc-500 italic">No videos studied in this session yet.</p>
+                <div className="py-16 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl bg-card">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-foreground font-medium text-lg">Your workspace is empty</p>
+                  <p className="text-muted-foreground text-sm mt-1">Add your first YouTube link above to begin.</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {folders.map((folder) => (
-                    <Card key={folder.id} className="overflow-hidden flex flex-col">
-                      <div className="w-full h-40 bg-zinc-200 relative">
+                    <Card key={folder.id} className="overflow-hidden flex flex-col border-border shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div className="w-full h-40 bg-muted relative border-b border-border">
                         <img 
                           src={`https://img.youtube.com/vi/${folder.yt_video_id}/hqdefault.jpg`} 
                           alt="Video Thumbnail" 
-                          className="object-cover w-full h-full"
+                          className="object-cover w-full h-full opacity-90 hover:opacity-100 transition-opacity"
                         />
                       </div>
-                      <CardContent className="p-4 flex-grow">
-                        <p className="text-xs text-zinc-500 mb-2 truncate">{folder.yt_url}</p>
-                        <div className="flex gap-4 mt-4">
-                          <span className="flex items-center text-sm text-indigo-600 font-medium">
-                            <FileText className="w-4 h-4 mr-1" /> Notes Saved
-                          </span>
+                      <CardContent className="p-5 flex-grow">
+                        <p className="text-xs text-muted-foreground mb-3 truncate font-medium">{folder.yt_url}</p>
+                        <div className="flex items-center text-sm text-primary font-medium bg-primary/10 w-fit px-2.5 py-1 rounded-md">
+                          <FileText className="w-4 h-4 mr-1.5" /> Notes Generated
                         </div>
                       </CardContent>
-                      <CardFooter className="p-4 pt-0">
+                      <CardFooter className="p-5 pt-0">
                         <Button 
                           variant="outline" 
-                          className="w-full"
+                          className="w-full border-border hover:bg-secondary hover:text-secondary-foreground"
                           onClick={() => setActiveVideo(folder)}
                         >
-                          <PlayCircle className="w-4 h-4 mr-2" /> Review Notes
+                          <BookOpen className="w-4 h-4 mr-2" /> Open Workspace
                         </Button>
                       </CardFooter>
                     </Card>
@@ -251,11 +272,12 @@ export default function SessionDashboard() {
             </div>
           </div>
         ) : (
-          /* Study Mode: Split UI */
-          <div className="flex flex-col lg:flex-row gap-6 h-[80vh] transition-all duration-300">
+          /* Premium Study Workspace: Split UI */
+          <div className="flex flex-col lg:flex-row gap-6 h-[85vh] transition-all duration-300">
+            
             {/* Conditional Video Area */}
             {!notesOnlyMode && (
-              <div className={`flex-grow ${videoOnlyMode ? "w-full" : "lg:w-2/3"} bg-black rounded-xl overflow-hidden shadow-lg transition-all duration-300`}>
+              <div className={`flex-grow ${videoOnlyMode ? "w-full" : "lg:w-[60%]"} bg-black rounded-2xl overflow-hidden shadow-md border border-border transition-all duration-300 flex items-center justify-center`}>
                 <iframe
                   className="w-full h-full min-h-[400px]"
                   src={`https://www.youtube.com/embed/${activeVideo.yt_video_id}`}
@@ -265,20 +287,41 @@ export default function SessionDashboard() {
               </div>
             )}
             
-            {/* Conditional Notes Area */}
+            {/* Conditional Premium Notes Area */}
             {!videoOnlyMode && (
-              <div className={`${notesOnlyMode ? "w-full" : "lg:w-1/3"} flex flex-col bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden shadow-sm transition-all duration-300`}>
-                <div className="p-4 border-b bg-zinc-100 dark:bg-zinc-800 font-semibold flex justify-between items-center">
-                  <span>AI Generated Notes</span>
-                  <Button variant="ghost" size="sm" onClick={closeVideo}>Close</Button>
+              <div className={`${notesOnlyMode ? "w-full max-w-4xl mx-auto" : "lg:w-[40%]"} flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-md transition-all duration-300`}>
+                <div className="p-4 border-b border-border bg-muted/30 font-semibold flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-ai" />
+                    <span className="text-foreground">AI Study Notes</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={closeVideo}>
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                {/* Note: max-w-none removes the strict character limit of standard Tailwind prose, allowing full-width reading */}
-                <div className="p-6 overflow-y-auto flex-grow prose dark:prose-invert prose-sm max-w-none">
-                  <ReactMarkdown>{activeVideo.notes}</ReactMarkdown>
+                
+                {/* Polished Markdown Typography */}
+                <div className="p-6 md:p-8 overflow-y-auto flex-grow custom-scrollbar">
+                  <article className="prose prose-base dark:prose-invert max-w-none 
+                    prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-foreground
+                    prose-h1:text-2xl prose-h1:mb-6
+                    prose-h2:text-xl prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h2:mt-8
+                    prose-h3:text-lg prose-h3:text-foreground/90
+                    prose-p:text-foreground/80 prose-p:leading-relaxed
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                    prose-code:text-ai prose-code:bg-ai/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-[#1E293B] prose-pre:text-white prose-pre:border prose-pre:border-border prose-pre:shadow-sm
+                    prose-strong:text-foreground prose-strong:font-semibold
+                    prose-ul:text-foreground/80 prose-ol:text-foreground/80
+                    prose-li:marker:text-primary/60"
+                  >
+                    <ReactMarkdown>{activeVideo.notes}</ReactMarkdown>
+                  </article>
                 </div>
-                <div className="p-4 border-t bg-zinc-50 dark:bg-zinc-900">
-                  <Button onClick={handleEndAndQuiz} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-                    End and Start Quiz
+
+                <div className="p-4 md:p-6 border-t border-border bg-muted/30">
+                  <Button onClick={handleEndAndQuiz} size="lg" className="w-full bg-ai hover:bg-ai/90 text-ai-foreground font-semibold shadow-sm transition-transform active:scale-[0.98]">
+                    <Sparkles className="mr-2 h-5 w-5" /> Generate AI Quiz
                   </Button>
                 </div>
               </div>

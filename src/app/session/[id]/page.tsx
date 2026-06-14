@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { PlayCircle, FileText, CheckCircle } from "lucide-react"; // Icons for our folders
+import { PlayCircle, FileText, CheckCircle } from "lucide-react"; 
 
 type VideoState = {
   id: string;
@@ -26,18 +26,20 @@ type Folder = {
 export default function SessionDashboard() {
   const params = useParams();
   const router = useRouter();
+  const supabase = createClient();
   const sessionId = params.id as string;
 
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeVideo, setActiveVideo] = useState<VideoState>(null);
-  const [videoOnlyMode, setVideoOnlyMode] = useState(false);
   
-  // New state for the Folders
+  // Phase 2.3: Mutually Exclusive Viewing Modes
+  const [videoOnlyMode, setVideoOnlyMode] = useState(false);
+  const [notesOnlyMode, setNotesOnlyMode] = useState(false);
+  
   const [folders, setFolders] = useState<Folder[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
 
-  // Fetch existing videos (folders) on mount
   useEffect(() => {
     fetchFolders();
   }, [sessionId]);
@@ -76,7 +78,7 @@ export default function SessionDashboard() {
       
       setActiveVideo(data.video);
       setYoutubeUrl("");
-      fetchFolders(); // Refresh folders in the background
+      fetchFolders(); 
     } catch (error: any) {
       alert(error.message || "Something went wrong.");
     } finally {
@@ -126,6 +128,12 @@ export default function SessionDashboard() {
     }
   };
 
+  const closeVideo = () => {
+    setActiveVideo(null);
+    setVideoOnlyMode(false);
+    setNotesOnlyMode(false);
+  };
+
   return (
     <main className="min-h-screen p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -141,13 +149,31 @@ export default function SessionDashboard() {
             </Button>
           )}
           {activeVideo && (
-            <Button variant="secondary" onClick={() => setVideoOnlyMode(!videoOnlyMode)}>
-              {videoOnlyMode ? "Show Notes" : "Video Only Mode"}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="secondary" 
+                onClick={() => {
+                  setVideoOnlyMode(!videoOnlyMode);
+                  setNotesOnlyMode(false); // Disable notes mode if video mode toggled
+                }}
+              >
+                {videoOnlyMode ? "Exit Video Mode" : "Video Only"}
+              </Button>
+              <Button 
+                variant="secondary" 
+                className="bg-zinc-200 hover:bg-zinc-300 text-zinc-900"
+                onClick={() => {
+                  setNotesOnlyMode(!notesOnlyMode);
+                  setVideoOnlyMode(false); // Disable video mode if notes mode toggled
+                }}
+              >
+                {notesOnlyMode ? "Exit Notes Mode" : "Notes Only"}
+              </Button>
+            </div>
           )}
         </header>
 
-        {/* Input State & Folders (If no video is currently active) */}
+        {/* Input State & Folders */}
         {!activeVideo ? (
           <div className="space-y-12">
             {/* The Ingestion Form */}
@@ -181,7 +207,6 @@ export default function SessionDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {folders.map((folder) => (
                     <Card key={folder.id} className="overflow-hidden flex flex-col">
-                      {/* Dynamic YT Thumbnail */}
                       <div className="w-full h-40 bg-zinc-200 relative">
                         <img 
                           src={`https://img.youtube.com/vi/${folder.yt_video_id}/hqdefault.jpg`} 
@@ -198,7 +223,6 @@ export default function SessionDashboard() {
                         </div>
                       </CardContent>
                       <CardFooter className="p-4 pt-0">
-                        {/* If they want to review notes, we load it back into the active state */}
                         <Button 
                           variant="outline" 
                           className="w-full"
@@ -214,23 +238,29 @@ export default function SessionDashboard() {
             </div>
           </div>
         ) : (
-          /* Study Mode: Split UI (Unchanged from Milestone 4) */
-          <div className="flex flex-col lg:flex-row gap-6 h-[80vh]">
-            <div className={`flex-grow ${videoOnlyMode ? "w-full" : "lg:w-2/3"} bg-black rounded-xl overflow-hidden shadow-lg`}>
-              <iframe
-                className="w-full h-full min-h-[400px]"
-                src={`https://www.youtube.com/embed/${activeVideo.yt_video_id}`}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
+          /* Study Mode: Split UI */
+          <div className="flex flex-col lg:flex-row gap-6 h-[80vh] transition-all duration-300">
+            {/* Conditional Video Area */}
+            {!notesOnlyMode && (
+              <div className={`flex-grow ${videoOnlyMode ? "w-full" : "lg:w-2/3"} bg-black rounded-xl overflow-hidden shadow-lg transition-all duration-300`}>
+                <iframe
+                  className="w-full h-full min-h-[400px]"
+                  src={`https://www.youtube.com/embed/${activeVideo.yt_video_id}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            )}
+            
+            {/* Conditional Notes Area */}
             {!videoOnlyMode && (
-              <div className="lg:w-1/3 flex flex-col bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden shadow-sm">
+              <div className={`${notesOnlyMode ? "w-full" : "lg:w-1/3"} flex flex-col bg-white dark:bg-zinc-900 border rounded-xl overflow-hidden shadow-sm transition-all duration-300`}>
                 <div className="p-4 border-b bg-zinc-100 dark:bg-zinc-800 font-semibold flex justify-between items-center">
                   <span>AI Generated Notes</span>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveVideo(null)}>Close</Button>
+                  <Button variant="ghost" size="sm" onClick={closeVideo}>Close</Button>
                 </div>
-                <div className="p-6 overflow-y-auto flex-grow prose dark:prose-invert prose-sm">
+                {/* Note: max-w-none removes the strict character limit of standard Tailwind prose, allowing full-width reading */}
+                <div className="p-6 overflow-y-auto flex-grow prose dark:prose-invert prose-sm max-w-none">
                   <ReactMarkdown>{activeVideo.notes}</ReactMarkdown>
                 </div>
                 <div className="p-4 border-t bg-zinc-50 dark:bg-zinc-900">

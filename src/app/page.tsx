@@ -1,272 +1,362 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { useUser } from "@/context/UserContext";
+import { LoadingScreen } from "@/components/LoadingScreen";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import { createClient } from "@/lib/supabase/client"; 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Brain,
-  Sparkles,
-  Target,
-  ArrowRight,
-  BookOpen,
-  ChevronRight,
-  PlayCircle
-} from "lucide-react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { PlayCircle, FileText, CheckCircle, Sparkles, BookOpen, Video, ArrowLeft, X, Lock, RotateCcw, FolderOpen } from "lucide-react"; 
 
-export default function LandingPage() {
+type VideoState = {
+  id: string;
+  yt_video_id: string;
+  notes: string;
+} | null;
+
+type Folder = {
+  id: string;
+  yt_video_id: string;
+  yt_url: string;
+  notes: string;
+  created_at: string;
+};
+
+export default function SessionDashboard() {
+  const params = useParams();
   const router = useRouter();
-  const { user, isLoading } = useUser();
   const supabase = createClient();
+  const sessionId = params.id as string;
 
-  // View State Management
-  const [showAuth, setShowAuth] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [sessionStatus, setSessionStatus] = useState<"active" | "completed" | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<VideoState>(null);
   
-  // Auth Form State
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [videoOnlyMode, setVideoOnlyMode] = useState(false);
+  const [notesOnlyMode, setNotesOnlyMode] = useState(false);
+  
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
-  // Secure redirect if already logged in
   useEffect(() => {
-    if (user && !isLoading) {
-      router.push("/dashboard");
-    }
-  }, [user, isLoading, router]);
+    fetchSessionData();
+  }, [sessionId]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const fetchSessionData = async () => {
+    setIsLoadingData(true);
+    
+    // 1. Fetch Session Status to check if it's locked/completed
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("status")
+      .eq("id", sessionId)
+      .single();
+      
+    if (session) setSessionStatus(session.status);
+
+    // 2. Fetch Folders
+    const { data: foldersData } = await supabase
+      .from("videos")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false });
+
+    if (foldersData) setFolders(foldersData);
+    
+    setIsLoadingData(false);
+  };
+
+  const handleIngestVideo = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
+    if (!youtubeUrl.trim() || sessionStatus === "completed") return;
 
+    setIsLoading(true);
     try {
-      if (isLogin) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) throw signInError;
-        router.push("/dashboard");
-      } else {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { username } },
-        });
-        if (signUpError) throw signUpError;
-        router.push("/dashboard");
-      }
-    } catch (err: any) {
-      setError(err.message || "An error occurred during authentication.");
+      const res = await fetch("/api/generate-notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ youtubeUrl, sessionId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      
+      setActiveVideo(data.video);
+      setYoutubeUrl("");
+      fetchSessionData(); // Re-fetch to update grid
+    } catch (error: any) {
+      alert(error.message || "Something went wrong.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-pulse text-lg font-medium text-muted-foreground flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-primary" /> Loading VibeLearn...
-        </div>
-      </div>
-    );
-  }
+  const handleEndAndQuiz = async () => {
+    if (!activeVideo) return;
+    
+    // If the session is completed, they might just be re-reading notes.
+    // If they click this, we can just route them directly to the existing quiz.
+    if (sessionStatus === "completed") {
+       alert("This session is locked. Please use the Master Revision tool to generate new quizzes.");
+       return;
+    }
+    
+    if (window.confirm("Are you sure you want to end this video and generate an AI quiz?")) {
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/generate-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            videoId: activeVideo.id,
+            sessionId: sessionId,
+            notes: activeVideo.notes
+          }),
+        });
 
-  // ==========================================
-  // VIEW: Authentication Form
-  // ==========================================
-  if (showAuth) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4 relative overflow-hidden">
-        {/* Ambient Background */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        router.push(`/session/${sessionId}/quiz/${data.quizId}`);
+      } catch (error: any) {
+        alert(error.message || "Failed to generate quiz.");
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleEndSession = async () => {
+    if (window.confirm("Are you ready to end this entire session? You will move to the Master Revision phase.")) {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ status: "completed" })
+        .eq("id", sessionId);
+
+      if (error) {
+        alert("Failed to end session.");
+      } else {
+        router.push("/dashboard");
+      }
+    }
+  };
+
+  const closeVideo = () => {
+    setActiveVideo(null);
+    setVideoOnlyMode(false);
+    setNotesOnlyMode(false);
+  };
+
+  return (
+    <main className="min-h-screen p-4 md:p-8 bg-background">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        <div className="w-full max-w-md space-y-8 rounded-2xl bg-card/80 backdrop-blur-xl p-8 shadow-2xl border border-border relative z-10 animate-in fade-in zoom-in-95 duration-300">
-          <div className="text-center">
-            <button onClick={() => setShowAuth(false)} className="text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-              &larr; Back to home
-            </button>
-            <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">VibeLearn</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {isLogin ? "Welcome back to your study workspace." : "Create an account to start active learning."}
-            </p>
-          </div>
+        {/* Top Bar Navigation */}
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Button variant="outline" onClick={() => router.push("/dashboard")} className="shadow-sm">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard
+          </Button>
+          
+          {!activeVideo ? (
+            sessionStatus === "active" ? (
+              <Button variant="destructive" onClick={handleEndSession} className="shadow-sm">
+                End Session
+              </Button>
+            ) : (
+              <Button onClick={() => router.push(`/session/${sessionId}/revision`)} className="bg-success hover:bg-success/90 text-success-foreground shadow-sm">
+                <RotateCcw className="mr-2 h-4 w-4" /> Master Revision
+              </Button>
+            )
+          ) : (
+            <div className="flex bg-muted p-1 rounded-lg border border-border">
+              <Button 
+                variant={videoOnlyMode ? "secondary" : "ghost"} 
+                size="sm"
+                className={`text-sm ${videoOnlyMode ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                onClick={() => {
+                  setVideoOnlyMode(!videoOnlyMode);
+                  setNotesOnlyMode(false);
+                }}
+              >
+                <Video className="w-4 h-4 mr-2" /> Video View
+              </Button>
+              <Button 
+                variant={notesOnlyMode ? "secondary" : "ghost"} 
+                size="sm"
+                className={`text-sm ${notesOnlyMode ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                onClick={() => {
+                  setNotesOnlyMode(!notesOnlyMode);
+                  setVideoOnlyMode(false);
+                }}
+              >
+                <FileText className="w-4 h-4 mr-2" /> Focus Notes
+              </Button>
+            </div>
+          )}
+        </header>
 
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-foreground">Username</label>
-                <Input
-                  required
-                  type="text"
-                  placeholder="e.g. Abhijay"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-background/50 focus-visible:ring-primary"
-                />
+        {/* Dynamic Workspace State */}
+        {isLoading ? (
+          <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+            <LoadingScreen
+              message={
+                activeVideo
+                  ? "Crafting your custom AI quiz..."
+                  : "Fetching Transcript & Analyzing..."
+              }
+            />
+          </div>
+        ) : !activeVideo ? (
+          <div className="space-y-12">
+            
+            {/* The Ingestion Form OR Read-Only Banner */}
+            {sessionStatus === "active" ? (
+              <div className="bg-card p-8 md:p-12 rounded-2xl shadow-sm text-center max-w-2xl mx-auto mt-8 border border-border transition-all duration-200 hover:shadow-md">
+                <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Video size={32} />
+                </div>
+                <h2 className="text-2xl font-bold text-foreground mb-3">Add a Video to your Workspace</h2>
+                <p className="text-muted-foreground mb-8 text-sm md:text-base">Paste a YouTube educational link below. Our AI will instantly convert it into structured markdown notes and adaptive quizzes.</p>
+                <form onSubmit={handleIngestVideo} className="space-y-4">
+                  <Input
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    disabled={isLoading}
+                    required
+                    className="h-12 text-base focus-visible:ring-primary shadow-sm"
+                  />
+                  <Button type="submit" size="lg" className="w-full bg-ai hover:bg-ai/90 text-ai-foreground font-semibold shadow-sm transition-transform active:scale-[0.98]" disabled={isLoading}>
+                    <Sparkles className="mr-2 h-5 w-5" /> Generate Notes & Workspace
+                  </Button>
+                </form>
+              </div>
+            ) : (
+              <div className="bg-muted/50 p-8 rounded-2xl shadow-sm text-center max-w-2xl mx-auto mt-8 border border-border">
+                <div className="h-14 w-14 bg-background border border-border text-muted-foreground rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock size={24} />
+                </div>
+                <h2 className="text-xl font-bold text-foreground mb-2">Workspace Archived</h2>
+                <p className="text-muted-foreground text-sm">This session has been completed. You can review your notes and videos below, but no new videos can be added. Use the Master Revision tool to test your knowledge.</p>
               </div>
             )}
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Email</label>
-              <Input
-                required
-                type="email"
-                placeholder="you@university.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-background/50 focus-visible:ring-primary"
-              />
+
+            {/* The Folders Grid */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 border-b border-border pb-2">
+                <CheckCircle className="text-success w-5 h-5" /> 
+                <h3 className="text-lg font-semibold text-foreground">Processed Modules</h3>
+              </div>
+              
+              {isLoadingData ? (
+                <div className="animate-pulse flex gap-4">
+                  {[1,2,3].map(i => <div key={i} className="h-48 w-full bg-muted rounded-xl"></div>)}
+                </div>
+              ) : folders.length === 0 ? (
+                <div className="py-16 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl bg-card">
+                  <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                  <p className="text-foreground font-medium text-lg">Your workspace is empty</p>
+                  <p className="text-muted-foreground text-sm mt-1">Add your first YouTube link above to begin.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {folders.map((folder) => (
+                    <Card key={folder.id} className="overflow-hidden flex flex-col border-border shadow-sm hover:shadow-md transition-shadow duration-200">
+                      <div className="w-full h-40 bg-muted relative border-b border-border">
+                        <img 
+                          src={`https://img.youtube.com/vi/${folder.yt_video_id}/hqdefault.jpg`} 
+                          alt="Video Thumbnail" 
+                          className="object-cover w-full h-full opacity-90 hover:opacity-100 transition-opacity"
+                        />
+                      </div>
+                      <CardContent className="p-5 flex-grow">
+                        <p className="text-xs text-muted-foreground mb-3 truncate font-medium">{folder.yt_url}</p>
+                        <div className="flex items-center text-sm text-primary font-medium bg-primary/10 w-fit px-2.5 py-1 rounded-md">
+                          <FileText className="w-4 h-4 mr-1.5" /> Notes Generated
+                        </div>
+                      </CardContent>
+                      <CardFooter className="p-5 pt-0">
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-border hover:bg-secondary hover:text-secondary-foreground"
+                          onClick={() => setActiveVideo(folder)}
+                        >
+                          <BookOpen className="w-4 h-4 mr-2" /> Open Notes
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-foreground">Password</label>
-              <Input
-                required
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="bg-background/50 focus-visible:ring-primary"
-              />
-            </div>
-
-            {error && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-md font-medium border border-destructive/20">{error}</p>}
-
-            <Button type="submit" size="lg" className="w-full text-md font-semibold transition-transform active:scale-[0.98]" disabled={isSubmitting}>
-              {isSubmitting ? "Authenticating..." : isLogin ? "Sign In" : "Sign Up"}
-            </Button>
-          </form>
-
-          <div className="text-center text-sm pt-2">
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError("");
-              }}
-              className="text-primary hover:text-primary/80 font-medium transition-colors focus:outline-none"
-            >
-              {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
-            </button>
           </div>
-        </div>
+        ) : (
+          /* Premium Study Workspace: Split UI */
+          <div className="flex flex-col lg:flex-row gap-6 h-[85vh] transition-all duration-300">
+            
+            {/* Conditional Video Area */}
+            {!notesOnlyMode && (
+              <div className={`flex-grow ${videoOnlyMode ? "w-full" : "lg:w-[60%]"} bg-black rounded-2xl overflow-hidden shadow-md border border-border transition-all duration-300 flex items-center justify-center`}>
+                <iframe
+                  className="w-full h-full min-h-[400px]"
+                  src={`https://www.youtube.com/embed/${activeVideo.yt_video_id}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            )}
+            
+            {/* Conditional Premium Notes Area */}
+            {!videoOnlyMode && (
+              <div className={`${notesOnlyMode ? "w-full max-w-4xl mx-auto" : "lg:w-[40%]"} flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-md transition-all duration-300`}>
+                <div className="p-4 border-b border-border bg-muted/30 font-semibold flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-ai" />
+                    <span className="text-foreground">AI Study Notes</span>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={closeVideo}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <div className="p-6 md:p-8 overflow-y-auto flex-grow custom-scrollbar">
+                  <article className="prose prose-base dark:prose-invert max-w-none 
+                    prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-foreground
+                    prose-h1:text-2xl prose-h1:mb-6
+                    prose-h2:text-xl prose-h2:border-b prose-h2:border-border prose-h2:pb-2 prose-h2:mt-8
+                    prose-h3:text-lg prose-h3:text-foreground/90
+                    prose-p:text-foreground/80 prose-p:leading-relaxed
+                    prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                    prose-code:text-ai prose-code:bg-ai/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:before:content-none prose-code:after:content-none
+                    prose-pre:bg-[#1E293B] prose-pre:text-white prose-pre:border prose-pre:border-border prose-pre:shadow-sm
+                    prose-strong:text-foreground prose-strong:font-semibold
+                    prose-ul:text-foreground/80 prose-ol:text-foreground/80
+                    prose-li:marker:text-primary/60"
+                  >
+                    <ReactMarkdown>{activeVideo.notes}</ReactMarkdown>
+                  </article>
+                </div>
+
+                <div className="p-4 md:p-6 border-t border-border bg-muted/30">
+                  <Button 
+                    onClick={handleEndAndQuiz} 
+                    size="lg" 
+                    className={`w-full font-semibold shadow-sm transition-transform active:scale-[0.98] ${sessionStatus === "completed" ? "bg-secondary text-muted-foreground hover:bg-secondary cursor-not-allowed" : "bg-ai hover:bg-ai/90 text-ai-foreground"}`}
+                  >
+                    {sessionStatus === "completed" ? (
+                       <><Lock className="mr-2 h-5 w-5" /> Quiz Locked in Archive</>
+                    ) : (
+                       <><Sparkles className="mr-2 h-5 w-5" /> Generate AI Quiz</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    );
-  }
-
-  // ==========================================
-  // VIEW: Premium SaaS Landing Page
-  // ==========================================
-  return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary relative overflow-hidden">
-      
-      {/* Background Ambient Glows */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-ai/10 blur-[150px] rounded-full pointer-events-none" />
-
-      {/* Navigation */}
-      <nav className="relative z-10 border-b border-border/50 bg-background/50 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Brain className="w-6 h-6 text-primary" />
-            <span className="font-heading font-bold text-xl tracking-tight">VibeLearn</span>
-          </div>
-          <Button variant="ghost" onClick={() => { setIsLogin(true); setShowAuth(true); }} className="font-medium">
-            Sign In
-          </Button>
-        </div>
-      </nav>
-
-      <main className="relative z-10">
-        {/* Hero Section */}
-        <section className="pt-24 pb-20 md:pt-36 md:pb-32 px-6 max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ai/10 border border-ai/20 text-ai text-sm font-medium mb-8">
-            <Sparkles className="w-4 h-4" /> Powered by Llama 3.3
-          </div>
-          
-          <h1 className="font-heading text-5xl md:text-7xl font-extrabold tracking-tight mb-6 max-w-4xl mx-auto leading-tight">
-            Turn YouTube videos into <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-ai">active learning.</span>
-          </h1>
-          
-          <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
-            Stop watching passively. VibeLearn uses AI to convert any educational video into structured notes, adaptive quizzes, and a personalized revision loop.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-transform active:scale-95" onClick={() => { setIsLogin(false); setShowAuth(true); }}>
-              Get Started for Free <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto h-14 px-8 text-lg font-semibold border-border hover:bg-secondary transition-colors" onClick={() => { setIsLogin(true); setShowAuth(true); }}>
-              Login to Workspace
-            </Button>
-          </div>
-        </section>
-
-        {/* Features / How it Works Section */}
-        <section className="py-24 bg-card/30 border-t border-border/50">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">How VibeLearn Works</h2>
-              <p className="text-muted-foreground">Three steps to mastering any complex topic.</p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {/* Card 1 */}
-              <div className="bg-background rounded-2xl p-8 border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <PlayCircle className="w-24 h-24 text-primary" />
-                </div>
-                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-6 border border-primary/20">
-                  <PlayCircle className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-foreground">1. Ingest</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Paste any educational YouTube URL. We instantly extract the transcript and process the core concepts.
-                </p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-background rounded-2xl p-8 border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <BookOpen className="w-24 h-24 text-ai" />
-                </div>
-                <div className="w-12 h-12 bg-ai/10 rounded-xl flex items-center justify-center mb-6 border border-ai/20">
-                  <BookOpen className="w-6 h-6 text-ai" />
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-foreground">2. Learn</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Study from beautifully formatted, AI-generated markdown notes within a distraction-free workspace.
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="bg-background rounded-2xl p-8 border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Target className="w-24 h-24 text-success" />
-                </div>
-                <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center mb-6 border border-success/20">
-                  <Target className="w-6 h-6 text-success" />
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-foreground">3. Master</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  Take adaptive AI quizzes. We track your weak points and generate targeted master revisions to close knowledge gaps.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Simple Footer */}
-      <footer className="border-t border-border py-8 text-center bg-background">
-        <p className="text-sm text-muted-foreground">
-          © {new Date().getFullYear()} VibeLearn. Built for students, by a student.
-        </p>
-      </footer>
-    </div>
+    </main>
   );
 }

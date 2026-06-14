@@ -251,26 +251,35 @@ export default function Dashboard() {
                     <div className="flex gap-2 w-full">
                       <Button
                         variant="default"
-                        className="w-full flex-1"
+                        className="w-full flex-1 shadow-sm"
                         onClick={() => router.push(`/session/${session.id}`)}
                       >
                         <PlayCircle className="mr-2 h-4 w-4" /> Continue
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full flex-1 border-destructive text-destructive hover:bg-destructive/10"
+                        className="w-full flex-1 border-destructive text-destructive hover:bg-destructive/10 shadow-sm"
                         onClick={() => handleEndSession(session.id)}
                       >
                         End
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                      onClick={() => router.push(`/session/${session.id}/revision`)}
-                    >
-                      <RotateCcw className="mr-2 h-4 w-4" /> Start Revision
-                    </Button>
+                    <div className="flex gap-2 w-full">
+                      <Button
+                        className="w-full flex-1 bg-success hover:bg-success/90 text-success-foreground shadow-sm"
+                        onClick={() => router.push(`/session/${session.id}/revision`)}
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" /> Revise
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full flex-1 bg-secondary/50 hover:bg-secondary text-foreground shadow-sm"
+                        onClick={() => router.push(`/session/${session.id}`)}
+                      >
+                        <BookOpen className="mr-2 h-4 w-4" /> Archive
+                      </Button>
+                    </div>
                   )}
 
                   <Button

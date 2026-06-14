@@ -1,11 +1,25 @@
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { groq } from "@/lib/groq";
-import { supabase } from "@/lib/supabase";
+
 
 // Allow this specific API route to run for up to 60 seconds on Vercel
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized access. Please log in." },
+      { status: 401 }
+    );
+  }
   try {
     const { videoId, sessionId, notes } = await req.json();
 

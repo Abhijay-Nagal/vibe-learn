@@ -1,5 +1,6 @@
 "use client";
 
+import { DashboardHeader } from "@/components/DashboardHeader";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -110,7 +111,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen p-8 md:p-24 bg-zinc-50 dark:bg-zinc-950">
+    <main className="min-h-screen p-8 md:p-24 bg-zinc-50 dark:bg-zinc-950"><DashboardHeader />
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>

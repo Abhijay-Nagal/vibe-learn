@@ -1,8 +1,9 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-// Define the shape of our User state
+// The shape of the User remains exactly the same so we don't break V1 UI components
 type User = {
   id: string;
   username: string;
@@ -11,7 +12,6 @@ type User = {
 
 type UserContextType = {
   user: User;
-  setUser: (user: User) => void;
   isLoading: boolean;
 };
 
@@ -20,34 +20,66 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
 
-  // Read from localStorage only once when the app loads
   useEffect(() => {
-    const storedUser = localStorage.getItem("vibelearn_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
-  }, []);
+    let mounted = true;
 
-  // Sync state changes back to localStorage automatically
-  const handleSetUser = (newUser: User) => {
-    setUser(newUser);
-    if (newUser) {
-      localStorage.setItem("vibelearn_user", JSON.stringify(newUser));
-    } else {
-      localStorage.removeItem("vibelearn_user");
+    async function fetchSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Fetch the public profile to get the username
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, username, created_at')
+            .eq('id', session.user.id)
+            .single();
+
+          if (mounted && profile) {
+            setUser(profile as User);
+          }
+        } else {
+          if (mounted) setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user session:", error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
     }
-  };
+
+    fetchSession();
+
+    // Real-time listener for login/logout events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, created_at')
+          .eq('id', session.user.id)
+          .single();
+        setUser(profile as User);
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   return (
-    <UserContext.Provider value={{ user, setUser: handleSetUser, isLoading }}>
+    <UserContext.Provider value={{ user, isLoading }}>
       {children}
     </UserContext.Provider>
   );
 }
 
-// Custom hook to use the User Context easily
 export function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {

@@ -1,13 +1,27 @@
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { Supadata } from "@supadata/js";
 import { groq } from "@/lib/groq";
-import { supabase } from "@/lib/supabase";
+
 
 const supadata = new Supadata({
   apiKey: process.env.SUPADATA_API_KEY!,
 });
 
 export async function POST(req: Request) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized access. Please log in." },
+      { status: 401 }
+    );
+  }
   try {
     const { youtubeUrl, sessionId } = await req.json();
 

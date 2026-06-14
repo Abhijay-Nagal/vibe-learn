@@ -2,105 +2,139 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function Onboarding() {
-  const [username, setUsername] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
+export default function LoginPage() {
   const router = useRouter();
-  const {
-  user,
-  setUser,
-  isLoading: isUserLoading,
-} = useUser();
+  const { user, isLoading } = useUser();
+  const supabase = createClient();
 
-  // Redirect logged-in users only after UserContext finishes loading
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // If the user is already authenticated via Supabase, securely push to dashboard
   useEffect(() => {
-    if (isUserLoading) return;
-
-    if (user) {
-      router.replace("/dashboard");
+    if (user && !isLoading) {
+      router.push("/dashboard");
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isLoading, router]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
-
-    setIsLoading(true);
+    setIsSubmitting(true);
+    setError("");
 
     try {
-      // 1. Check if user exists in Supabase
-      let { data: user, error: fetchError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("username", username.trim())
-        .single();
-
-      // 2. If user doesn't exist, create them
-      if (fetchError && fetchError.code === "PGRST116") {
-        const { data: newUser, error: insertError } = await supabase
-          .from("users")
-          .insert([{ username: username.trim() }])
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        user = newUser;
-      } else if (fetchError) {
-        throw fetchError;
+      if (isLogin) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) throw signInError;
+        
+        router.push("/dashboard");
+      } else {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            // This is the magic that feeds the PostgreSQL trigger we created in Step 1!
+            data: { username }, 
+          },
+        });
+        if (signUpError) throw signUpError;
+        
+        // Auto-login after successful signup
+        router.push("/dashboard");
       }
-
-      // 3. Save to localStorage and redirect
-      setUser(user);
-      router.replace("/dashboard");
-    } catch (error) {
-      console.error("Login failed:", error);
-      alert("Something went wrong. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "An error occurred during authentication.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (isUserLoading) {
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        Loading...
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="animate-pulse text-lg font-medium text-gray-500">Loading VibeLearn...</div>
       </div>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-zinc-50 dark:bg-zinc-950">
-      <div className="w-full max-w-md space-y-8 bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <div className="w-full max-w-md space-y-8 rounded-xl bg-white p-8 shadow-lg border border-gray-100">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white">
-            Smart Learning Platform
-          </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-            Enter your username to pick up where you left off.
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">VibeLearn</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            {isLogin ? "Welcome back to your study sessions." : "Create an account to start learning."}
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <Input
-            type="text"
-            placeholder="e.g., Abhijay"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={isLoading}
-            required
-            className="w-full"
-          />
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Loading..." : "Let's Begin"}
+        <form onSubmit={handleAuth} className="space-y-4">
+          {!isLogin && (
+            <div>
+              <label className="text-sm font-medium text-gray-700">Username</label>
+              <Input
+                required
+                type="text"
+                placeholder="e.g. Abhijay"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-sm font-medium text-gray-700">Email</label>
+            <Input
+              required
+              type="email"
+              placeholder="you@university.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Password</label>
+            <Input
+              required
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
           </Button>
         </form>
+
+        <div className="text-center text-sm">
+          <button
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError("");
+            }}
+            className="text-blue-600 hover:underline focus:outline-none"
+          >
+            {isLogin ? "Need an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

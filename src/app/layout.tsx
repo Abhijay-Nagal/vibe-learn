@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/context/UserContext";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 // Primary Font for Dashboard & Workflows
 const inter = Inter({
@@ -35,7 +36,14 @@ export default function RootLayout({
       suppressHydrationWarning // Good practice for future dark-mode theme providers
     >
       <body className="min-h-full flex flex-col font-sans">
-        <UserProvider>{children}</UserProvider>
+        <ThemeProvider
+  attribute="class"
+  defaultTheme="system"
+  enableSystem
+  disableTransitionOnChange
+>
+  <UserProvider>{children}</UserProvider>
+</ThemeProvider>
       </body>
     </html>
   );

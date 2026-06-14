@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function DashboardHeader() {
   const router = useRouter();
@@ -49,6 +50,7 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center space-x-4">
+        <ThemeToggle />
         <Button variant="outline" onClick={handleLogout}>
           Sign Out
         </Button>

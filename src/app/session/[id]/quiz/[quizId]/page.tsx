@@ -24,6 +24,7 @@ export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
   const quizId = params.quizId as string;
+  const sessionId = params.id as string;
 
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -94,13 +95,13 @@ export default function QuizPage() {
         console.error("Failed to save attempt:", error);
         alert("Failed to save your score, but you can return to the dashboard.");
       }
-      router.push("/dashboard"); // Route back to the main dashboard
+      router.push(`/session/${sessionId}`); // Route back to the main dashboard
     }
   };
 
   const handleExit = () => {
     if (window.confirm("Are you sure you want to exit? Your progress will not be saved.")) {
-      router.push("/dashboard");
+      router.push(`/session/${sessionId}`);
     }
   };
 

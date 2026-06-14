@@ -147,7 +147,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen p-8 md:p-24 bg-background">
+    <main className="min-h-screen p-8 md:pl-72 md:p-12 bg-background">
       <DashboardHeader />
       
       <div className="max-w-5xl mx-auto space-y-10 pt-8">

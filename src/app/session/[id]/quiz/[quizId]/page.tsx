@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client"; // Ensure correct client import
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, XCircle, ArrowRight, BrainCircuit } from "lucide-react";
+import { CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 
 type Question = {
   topic: string;
@@ -25,6 +25,7 @@ type QuizData = {
 export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
+  const supabase = createClient();
   const quizId = params.quizId as string;
   const sessionId = params.id as string;
 
@@ -87,7 +88,7 @@ export default function QuizPage() {
   const isCorrect = selectedOption === currentQ.correctAnswer;
 
   return (
-    <main className="min-h-screen p-6 md:p-12 bg-background flex flex-col items-center">
+    <main className="min-h-screen p-6 md:p-12 md:pl-72 bg-background flex flex-col items-center">
       <div className="w-full max-w-2xl space-y-6">
         
         {/* Progress & Header */}
@@ -110,17 +111,41 @@ export default function QuizPage() {
               const isSelected = option === selectedOption;
               const isCorrectOption = option === currentQ.correctAnswer;
               
-              let baseClasses = "w-full justify-start h-auto py-4 px-6 text-md font-normal whitespace-normal transition-all";
-              
+              // Base classes for the button, making it flex to align text and icons
+              let baseClasses = "w-full justify-between h-auto py-4 px-6 text-md font-normal whitespace-normal transition-all text-left flex items-center gap-3";
+              let icon = null;
+
               if (isAnswered) {
-                if (isCorrectOption) baseClasses += " bg-success text-success-foreground border-success hover:bg-success";
-                else if (isSelected && !isCorrect) baseClasses += " bg-destructive text-destructive-foreground border-destructive hover:bg-destructive";
-                else baseClasses += " opacity-50";
+                if (isSelected && isCorrectOption) {
+                  // 1. User clicked the right answer
+                  baseClasses += " bg-success text-success-foreground border-success hover:bg-success";
+                  icon = <CheckCircle2 className="w-5 h-5 shrink-0" />;
+                } else if (isSelected && !isCorrectOption) {
+                  // 2. User clicked the wrong answer
+                  baseClasses += " bg-destructive text-destructive-foreground border-destructive hover:bg-destructive";
+                  icon = <XCircle className="w-5 h-5 shrink-0" />;
+                } else if (!isSelected && isCorrectOption) {
+                  // 3. User missed this answer (highlight the correct one)
+                  baseClasses += " border-success bg-success/10 text-foreground ring-1 ring-success";
+                  icon = <CheckCircle2 className="w-5 h-5 text-success shrink-0" />;
+                } else {
+                  // 4. Irrelevant wrong answer
+                  baseClasses += " opacity-50";
+                }
+              } else {
+                baseClasses += " hover:bg-accent hover:text-accent-foreground";
               }
 
               return (
-                <Button key={idx} variant={isAnswered ? "outline" : "outline"} className={baseClasses} onClick={() => handleSelectOption(option)} disabled={isAnswered}>
-                  {option}
+                <Button 
+                  key={idx} 
+                  variant="outline" 
+                  className={baseClasses} 
+                  onClick={() => handleSelectOption(option)} 
+                  disabled={isAnswered}
+                >
+                  <span className="flex-1">{option}</span>
+                  {icon}
                 </Button>
               );
             })}
@@ -135,7 +160,7 @@ export default function QuizPage() {
                   {isCorrect ? currentQ.explanationRight : currentQ.explanationWrong}
                 </p>
               </div>
-              <Button onClick={handleNext} className="w-full bg-ai hover:bg-ai/90" disabled={isSaving}>
+              <Button onClick={handleNext} className="w-full bg-ai hover:bg-ai/90 text-ai-foreground" disabled={isSaving}>
                 {isSaving ? "Finalizing..." : (currentIndex < quiz.questions.length - 1 ? "Next Question" : "Complete Quiz")}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

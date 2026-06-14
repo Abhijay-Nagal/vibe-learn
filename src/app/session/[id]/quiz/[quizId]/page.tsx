@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { CheckCircle2, XCircle, ArrowRight, BrainCircuit } from "lucide-react";
 
 type Question = {
   topic: string;
@@ -30,8 +32,6 @@ export default function QuizPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
-  
-  // State for the endless revision loop
   const [score, setScore] = useState(0);
   const [weakTopics, setWeakTopics] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,141 +43,103 @@ export default function QuizPage() {
         .select("*")
         .eq("id", quizId)
         .single();
-
-      if (error) {
-        console.error("Failed to fetch quiz:", error);
-      } else {
-        setQuiz(data);
-      }
+      if (error) console.error("Failed to fetch quiz:", error);
+      else setQuiz(data);
     };
     fetchQuiz();
   }, [quizId]);
 
   const handleSelectOption = (option: string) => {
     if (isAnswered || !quiz) return;
-    
     setSelectedOption(option);
     setIsAnswered(true);
 
     const currentQ = quiz.questions[currentIndex];
-    
     if (option === currentQ.correctAnswer) {
       setScore((prev) => prev + 1);
-    } else {
-      // Track the topic the user failed for adaptive revision later
-      if (!weakTopics.includes(currentQ.topic)) {
-        setWeakTopics((prev) => [...prev, currentQ.topic]);
-      }
+    } else if (!weakTopics.includes(currentQ.topic)) {
+      setWeakTopics((prev) => [...prev, currentQ.topic]);
     }
   };
 
   const handleNext = async () => {
     if (!quiz) return;
-
     if (currentIndex < quiz.questions.length - 1) {
-      // Move to next question
       setCurrentIndex((prev) => prev + 1);
       setSelectedOption(null);
       setIsAnswered(false);
     } else {
-      // Finish Quiz and Save Attempt
       setIsSaving(true);
-      const { error } = await supabase.from("quiz_attempts").insert([
-        {
-          quiz_id: quizId,
-          score: score,
-          total_questions: quiz.questions.length,
-          weak_topics: weakTopics,
-        },
-      ]);
-
-      if (error) {
-        console.error("Failed to save attempt:", error);
-        alert("Failed to save your score, but you can return to the dashboard.");
-      }
-      router.push(`/session/${sessionId}`); // Route back to the main dashboard
+      await supabase.from("quiz_attempts").insert([{
+        quiz_id: quizId,
+        score,
+        total_questions: quiz.questions.length,
+        weak_topics: weakTopics,
+      }]);
+      router.push(`/session/${sessionId}`); 
     }
   };
 
-  const handleExit = () => {
-    if (window.confirm("Are you sure you want to exit? Your progress will not be saved.")) {
-      router.push(`/session/${sessionId}`);
-    }
-  };
-
-  if (!quiz) {
-    return <div className="flex min-h-screen items-center justify-center">Loading quiz...</div>;
-  }
+  if (!quiz) return <div className="flex min-h-screen items-center justify-center">Loading assessment...</div>;
 
   const currentQ = quiz.questions[currentIndex];
+  const progress = ((currentIndex + 1) / quiz.questions.length) * 100;
   const isCorrect = selectedOption === currentQ.correctAnswer;
 
   return (
-    <main className="min-h-screen p-4 md:p-8 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center">
-      <div className="w-full max-w-3xl space-y-4">
+    <main className="min-h-screen p-6 md:p-12 bg-background flex flex-col items-center">
+      <div className="w-full max-w-2xl space-y-6">
         
-        <header className="flex justify-between items-center mb-8">
-          <span className="text-zinc-500 font-medium">
-            Question {currentIndex + 1} of {quiz.questions.length}
-          </span>
-          <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleExit}>
-            Exit Quiz
-          </Button>
-        </header>
+        {/* Progress & Header */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm font-medium text-muted-foreground">
+            <span>Progress</span>
+            <span>{currentIndex + 1} / {quiz.questions.length}</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
 
-        <Card className="w-full shadow-lg border-zinc-200 dark:border-zinc-800">
+        <Card className="border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl md:text-2xl leading-relaxed">
+            <CardTitle className="text-xl md:text-2xl font-bold leading-snug">
               {currentQ.question}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {currentQ.options.map((option, idx) => {
-              // Determine styling based on whether the question has been answered
-              let buttonVariant: "outline" | "default" | "destructive" = "outline";
-              let buttonClasses = "w-full justify-start text-left h-auto py-4 px-6 text-md font-normal whitespace-normal";
-
+              const isSelected = option === selectedOption;
+              const isCorrectOption = option === currentQ.correctAnswer;
+              
+              let baseClasses = "w-full justify-start h-auto py-4 px-6 text-md font-normal whitespace-normal transition-all";
+              
               if (isAnswered) {
-                if (option === currentQ.correctAnswer) {
-                  buttonVariant = "default";
-                  buttonClasses += " bg-green-600 hover:bg-green-700 text-white border-transparent";
-                } else if (option === selectedOption) {
-                  buttonVariant = "destructive";
-                  buttonClasses += " border-transparent";
-                } else {
-                  buttonClasses += " opacity-50 cursor-not-allowed";
-                }
+                if (isCorrectOption) baseClasses += " bg-success text-success-foreground border-success hover:bg-success";
+                else if (isSelected && !isCorrect) baseClasses += " bg-destructive text-destructive-foreground border-destructive hover:bg-destructive";
+                else baseClasses += " opacity-50";
               }
 
               return (
-                <Button
-                  key={idx}
-                  variant={buttonVariant}
-                  className={buttonClasses}
-                  onClick={() => handleSelectOption(option)}
-                  disabled={isAnswered}
-                >
+                <Button key={idx} variant={isAnswered ? "outline" : "outline"} className={baseClasses} onClick={() => handleSelectOption(option)} disabled={isAnswered}>
                   {option}
                 </Button>
               );
             })}
           </CardContent>
 
-          {/* Explanation Box appears instantly after answering */}
+          {/* Inline Feedback */}
           {isAnswered && (
-            <CardFooter className="flex-col items-start bg-zinc-50 dark:bg-zinc-900 border-t p-6 rounded-b-xl">
-              <div className="w-full mb-4">
-                <h4 className={`font-bold mb-2 ${isCorrect ? "text-green-600" : "text-red-600"}`}>
-                  {isCorrect ? "Correct!" : "Incorrect"}
-                </h4>
-                <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed">
+            <div className="px-6 pb-6 animate-in slide-in-from-bottom-4 duration-300">
+              <div className={`p-4 rounded-xl mb-4 flex gap-3 ${isCorrect ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+                {isCorrect ? <CheckCircle2 className="shrink-0" /> : <XCircle className="shrink-0" />}
+                <p className="text-sm font-medium">
                   {isCorrect ? currentQ.explanationRight : currentQ.explanationWrong}
                 </p>
               </div>
-              <Button onClick={handleNext} className="w-full" disabled={isSaving}>
-                {isSaving ? "Saving Results..." : currentIndex < quiz.questions.length - 1 ? "Next Question" : "Finish Quiz"}
+              <Button onClick={handleNext} className="w-full bg-ai hover:bg-ai/90" disabled={isSaving}>
+                {isSaving ? "Finalizing..." : (currentIndex < quiz.questions.length - 1 ? "Next Question" : "Complete Quiz")}
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </CardFooter>
+            </div>
           )}
         </Card>
       </div>

@@ -22,7 +22,7 @@ export function DashboardHeader() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push("/#login");
   };
 
   const handleDeleteAccount = async () => {

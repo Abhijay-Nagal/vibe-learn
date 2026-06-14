@@ -49,7 +49,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from("sessions")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("profile_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -69,16 +69,21 @@ export default function Dashboard() {
 
     const { data, error } = await supabase
       .from("sessions")
-      .insert([{ user_id: user.id, title: newSessionTitle.trim() }])
+      .insert([
+  {
+    profile_id: user.id,
+    title: newSessionTitle.trim(),
+  },
+])
       .select()
       .single();
 
     setIsCreating(false);
 
     if (error) {
-      console.error("Error creating session:", error);
-      alert("Failed to create session.");
-    } else if (data) {
+  console.error("FULL SESSION ERROR:", error);
+  alert(JSON.stringify(error));
+} else if (data) {
       router.push(`/session/${data.id}`);
     }
   };

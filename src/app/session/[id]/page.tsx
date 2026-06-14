@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -174,7 +175,17 @@ export default function SessionDashboard() {
         </header>
 
         {/* Input State & Folders */}
-        {!activeVideo ? (
+        {isLoading ? (
+  <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800">
+    <LoadingScreen
+      message={
+        activeVideo
+          ? "Crafting your custom quiz..."
+          : "Fetching Transcript & Analyzing..."
+      }
+    />
+  </div>
+) : !activeVideo ? (
           <div className="space-y-12">
             {/* The Ingestion Form */}
             <div className="bg-white dark:bg-zinc-900 p-8 rounded-xl shadow-sm text-center max-w-2xl mx-auto mt-8 border border-zinc-200 dark:border-zinc-800">
@@ -189,8 +200,10 @@ export default function SessionDashboard() {
                   required
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Fetching Transcript & Analyzing..." : "Let's Begin"}
-                </Button>
+  {isLoading
+    ? "Fetching Transcript & Analyzing..."
+    : "Let's Begin"}
+</Button>
               </form>
             </div>
 

@@ -61,40 +61,35 @@ export function DashboardHeader({
 
   return (
     <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => {
+          if (window.matchMedia("(min-width: 768px)").matches) {
+            setCollapsed(!collapsed);
+          } else {
+            setMobileSidebarOpen((prev) => !prev);
+          }
+        }}
+        className="fixed top-3 left-4 z-[60]"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
       <aside
         className={`
-        fixed inset-y-0 left-0 z-50 flex flex-col
-        border-r border-border bg-card shadow-sm
-        transition-[width,transform] duration-300
+          fixed inset-y-0 left-0 z-50 flex flex-col overflow-hidden
+          border-r border-border bg-card shadow-sm
+          transition-[width] duration-300
 
-        ${collapsed ? "md:w-20" : "md:w-64"}
+          w-20
+          md:${collapsed ? "w-20" : "w-64"}
 
-        w-64
-
-        ${
-          mobileSidebarOpen
-            ? "translate-x-0"
-            : "-translate-x-full md:translate-x-0"
-        }
+          ${mobileSidebarOpen ? "w-64" : "w-20"}
         `}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            if (window.innerWidth < 768) {
-              setMobileSidebarOpen(!mobileSidebarOpen);
-            } else {
-              setCollapsed(!collapsed);
-            }
-          }}
-          className="absolute top-3 left-6 z-50"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-
         {/* Top Section: Branding & User */}
-        <div className="flex flex-col gap-6 p-6 pt-14">
+        <div className="flex flex-col gap-6 p-6 pt-16">
           <div className="flex items-center justify-between">
             <div className="ml-[-5px] flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
@@ -143,7 +138,8 @@ export function DashboardHeader({
             } text-foreground bg-secondary/50 hover:bg-secondary`} 
             onClick={() => {
               router.push("/dashboard");
-              if (window.innerWidth < 768) {
+
+              if (!window.matchMedia("(min-width:768px)").matches) {
                 setMobileSidebarOpen(false);
               }
             }}

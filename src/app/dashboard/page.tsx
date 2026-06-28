@@ -52,15 +52,15 @@ export default function Dashboard() {
       router.replace("/");
       return;
     }
-    
 
     if (user) {
       fetchDashboardData();
     }
   }, [user, isUserLoading, router]);
+
   useEffect(() => {
-  setMounted(true);
-}, []);
+    setMounted(true);
+  }, []);
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -139,26 +139,28 @@ export default function Dashboard() {
 
   // The Premium Skeleton Loader
   if (isUserLoading || isLoadingData) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex items-center gap-3">
-        <BrainCircuit className="h-6 w-6 animate-pulse text-primary" />
-        <span className="text-lg font-medium text-muted-foreground">
-          Loading your workspace...
-        </span>
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3">
+          <BrainCircuit className="h-6 w-6 animate-pulse text-primary" />
+          <span className="text-lg font-medium text-muted-foreground">
+            Loading your workspace...
+          </span>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <main
-  className={`min-h-screen bg-background ${mounted ? "transition-all duration-300" : ""}
-    px-4 pb-8 pt-20
-    md:pb-12 md:pt-12 md:pr-12
-    ${collapsed ? "md:ml-20" : "md:ml-64"}
-  `}
->
+      className={`min-h-screen bg-background
+        ${mounted ? "transition-all duration-300" : ""}
+        px-4 pb-8 pt-20
+        ml-20
+        md:pb-12 md:pt-12 md:pr-12
+        ${collapsed ? "md:ml-20" : "md:ml-64"}
+      `}
+    >
       <DashboardHeader 
         collapsed={collapsed}
         setCollapsed={setCollapsed}

@@ -41,17 +41,26 @@ export default function Dashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
+  // New states for Sidebar Navigation
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
   // Protect the route and fetch data
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace("/");
       return;
     }
+    
 
     if (user) {
       fetchDashboardData();
     }
   }, [user, isUserLoading, router]);
+  useEffect(() => {
+  setMounted(true);
+}, []);
 
   const fetchDashboardData = async () => {
     if (!user) return;
@@ -130,25 +139,32 @@ export default function Dashboard() {
 
   // The Premium Skeleton Loader
   if (isUserLoading || isLoadingData) {
-    return (
-      <main className="min-h-screen pt-24 px-4 pb-8 md:pl-72 md:pt-12 md:pr-12 bg-background">
-        <DashboardHeader />
-        <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-2 md:pt-8">
-          <div className="h-10 w-48 bg-muted rounded"></div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-muted rounded-xl"></div>)}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
-            {[1, 2, 3].map(i => <div key={i} className="h-48 bg-muted rounded-xl"></div>)}
-          </div>
-        </div>
-      </main>
-    );
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center gap-3">
+        <BrainCircuit className="h-6 w-6 animate-pulse text-primary" />
+        <span className="text-lg font-medium text-muted-foreground">
+          Loading your workspace...
+        </span>
+      </div>
+    </div>
+  );
+}
 
   return (
-    <main className="min-h-screen pt-24 px-4 pb-8 md:pl-72 md:pt-12 md:pr-12 bg-background">
-      <DashboardHeader />
+    <main
+  className={`min-h-screen bg-background ${mounted ? "transition-all duration-300" : ""}
+    px-4 pb-8 pt-20
+    md:pb-12 md:pt-12 md:pr-12
+    ${collapsed ? "md:ml-20" : "md:ml-64"}
+  `}
+>
+      <DashboardHeader 
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        mobileSidebarOpen={mobileSidebarOpen}
+        setMobileSidebarOpen={setMobileSidebarOpen}
+      />
       
       <div className="w-full max-w-5xl mx-auto space-y-8 pt-2 md:pt-8">
         
@@ -166,10 +182,7 @@ export default function Dashboard() {
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button
-  size="lg"
-  className="w-full md:w-auto h-12 md:h-11"
->
+                <Button size="lg" className="w-full md:w-auto h-12 md:h-11 shadow-sm transition-transform active:scale-95">
                   <Plus className="mr-2 h-5 w-5" /> New Session
                 </Button>
               </DialogTrigger>
@@ -195,7 +208,7 @@ export default function Dashboard() {
           </header>
 
           {/* Analytics Grid */}
-          <div className="grid grid grid-cols-2 lg:grid-cols-4 gap-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <Card className="border-border shadow-sm">
               <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
                 <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary mb-2 opacity-80" />
@@ -251,7 +264,7 @@ export default function Dashboard() {
 
                 <CardFooter className="flex flex-col gap-3">
                   {session.status === "active" ? (
-                    <div className="flex flex-col gap-2 gap-2 w-full">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
                       <Button
                         variant="default"
                         className="w-full sm:flex-1 shadow-sm"

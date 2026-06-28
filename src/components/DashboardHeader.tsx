@@ -12,16 +12,28 @@ import {
   LayoutDashboard,
   Menu,
 } from "lucide-react";
-import { useState } from "react";
+import React from "react";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  collapsed: boolean;
+  setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  mobileSidebarOpen: boolean;
+  setMobileSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export function DashboardHeader({
+  collapsed,
+  setCollapsed,
+  mobileSidebarOpen,
+  setMobileSidebarOpen,
+}: DashboardHeaderProps) {
   const router = useRouter();
   const { user } = useUser();
   const supabase = createClient();
-  const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setMobileSidebarOpen(false);
     router.push("/#login");
   };
 
@@ -36,6 +48,7 @@ export function DashboardHeader() {
         if (error) throw error;
 
         await supabase.auth.signOut();
+        setMobileSidebarOpen(false);
         router.push("/");
       } catch (error) {
         console.error("Error deleting account:", error);
@@ -47,97 +60,167 @@ export function DashboardHeader() {
   if (!user) return null;
 
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card shadow-sm transition-all duration-300 ${
-        collapsed ? "w-20" : "w-64"
-      }`}
-    >
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute top-3 left-6 z-50"
+    <>
+      <aside
+        className={`
+        fixed inset-y-0 left-0 z-50 flex flex-col
+        border-r border-border bg-card shadow-sm
+        transition-[width,transform] duration-300
+
+        ${collapsed ? "md:w-20" : "md:w-64"}
+
+        w-64
+
+        ${
+          mobileSidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full md:translate-x-0"
+        }
+        `}
       >
-        <Menu className="h-5 w-5" />
-      </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              setMobileSidebarOpen(!mobileSidebarOpen);
+            } else {
+              setCollapsed(!collapsed);
+            }
+          }}
+          className="absolute top-3 left-6 z-50"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
 
-      {/* Top Section: Branding & User */}
-      <div className="flex flex-col gap-6 p-6 pt-14">
-        <div className="flex items-center justify-between">
-          <div className="ml-[-5px] flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
-              <Brain className="h-6 w-6 text-primary" />
+        {/* Top Section: Branding & User */}
+        <div className="flex flex-col gap-6 p-6 pt-14">
+          <div className="flex items-center justify-between">
+            <div className="ml-[-5px] flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+                <Brain className="h-6 w-6 text-primary" />
+              </div>
+
+              <div
+                className={`overflow-hidden transition-all duration-300 ${
+                  collapsed ? "w-0 opacity-0" : "w-40 opacity-100"
+                }`}
+              >
+                <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground whitespace-nowrap">
+                  VibeLearn
+                </h1>
+              </div>
             </div>
+          </div>
 
-            {!collapsed && (
-              <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground truncate">
-                VibeLearn
-              </h1>
+          <div
+            className={`flex items-center justify-center rounded-lg bg-muted py-2.5 border border-border ${
+              collapsed ? "px-2" : "px-4"
+            }`}
+          >
+            {collapsed ? (
+              <span className="text-sm font-medium text-foreground">
+                {user.username.charAt(0).toUpperCase()}
+              </span>
+            ) : (
+              <span
+                className={`text-sm font-medium text-foreground whitespace-nowrap transition-opacity duration-300 ${
+                  collapsed ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                Hi, {user.username}
+              </span>
             )}
           </div>
         </div>
 
-        <div
-          className={`flex items-center justify-center rounded-lg bg-muted py-2.5 border border-border ${
-            collapsed ? "px-2" : "px-4"
-          }`}
-        >
-          <span className="text-sm font-medium text-foreground truncate">
-            {collapsed ? user.username.charAt(0).toUpperCase() : `Hi, ${user.username}`}
-          </span>
+        {/* Middle Section: Navigation */}
+        <nav className="flex-1 px-4 space-y-2">
+          <Button 
+            variant="secondary" 
+            className={`w-full ${
+              collapsed ? "justify-center px-0" : "justify-start"
+            } text-foreground bg-secondary/50 hover:bg-secondary`} 
+            onClick={() => {
+              router.push("/dashboard");
+              if (window.innerWidth < 768) {
+                setMobileSidebarOpen(false);
+              }
+            }}
+          >
+            <LayoutDashboard className={`${collapsed ? "" : "mr-3"} h-5 w-5 shrink-0 text-primary`} />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${
+                collapsed ? "w-0 opacity-0" : "w-28 opacity-100"
+              }`}
+            >
+              Dashboard
+            </span>
+          </Button>
+        </nav>
+
+        {/* Bottom Section: Utilities & Destructive Actions */}
+        {/* Added pb-24 to keep controls well above any floating system logos */}
+        <div className="border-t border-border p-4 space-y-2 pb-24">
+          {collapsed ? (
+            <div className="flex justify-center mb-4">
+              <ThemeToggle />
+            </div>
+          ) : (
+            <div className="flex items-center justify-between px-4 py-2 mb-4">
+              <span
+                className={`transition-opacity duration-300 ${
+                  collapsed ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                Theme
+              </span>
+              <ThemeToggle />
+            </div>
+          )}
+          
+          <Button 
+            variant="ghost" 
+            className={`w-full ${
+              collapsed ? "justify-center px-0" : "justify-start"
+            } text-muted-foreground hover:text-foreground hover:bg-muted`} 
+            onClick={handleLogout}
+          >
+            <LogOut className={`${collapsed ? "" : "mr-3"} h-4 w-4 shrink-0`} />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${
+                collapsed ? "w-0 opacity-0" : "w-20 opacity-100"
+              }`}
+            >
+              Sign Out
+            </span>
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            className={`w-full ${
+              collapsed ? "justify-center px-0" : "justify-start"
+            } text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors`} 
+            onClick={handleDeleteAccount}
+          >
+            <Trash2 className={`${collapsed ? "" : "mr-3"} h-4 w-4 shrink-0`} />
+            <span
+              className={`overflow-hidden whitespace-nowrap transition-all duration-300 ${
+                collapsed ? "w-0 opacity-0" : "w-16 opacity-100"
+              }`}
+            >
+              Delete
+            </span>
+          </Button>
         </div>
-      </div>
+      </aside>
 
-      {/* Middle Section: Navigation */}
-      <nav className="flex-1 px-4 space-y-2">
-        <Button 
-          variant="secondary" 
-          className={`w-full ${
-            collapsed ? "justify-center px-0" : "justify-start"
-          } text-foreground bg-secondary/50 hover:bg-secondary`} 
-          onClick={() => router.push("/dashboard")}
-        >
-          <LayoutDashboard className={`${collapsed ? "" : "mr-3"} h-5 w-5 shrink-0 text-primary`} />
-          {!collapsed && "Dashboard"}
-        </Button>
-      </nav>
-
-      {/* Bottom Section: Utilities & Destructive Actions */}
-      {/* Added pb-24 to keep controls well above any floating system logos */}
-      <div className="border-t border-border p-4 space-y-2 pb-24">
-        {!collapsed ? (
-          <div className="flex items-center justify-between px-4 py-2 mb-4">
-            <span className="text-sm font-medium text-muted-foreground">Theme</span>
-            <ThemeToggle />
-          </div>
-        ) : (
-          <div className="flex justify-center mb-4">
-            <ThemeToggle />
-          </div>
-        )}
-        
-        <Button 
-          variant="ghost" 
-          className={`w-full ${
-            collapsed ? "justify-center px-0" : "justify-start"
-          } text-muted-foreground hover:text-foreground hover:bg-muted`} 
-          onClick={handleLogout}
-        >
-          <LogOut className={`${collapsed ? "" : "mr-3"} h-4 w-4 shrink-0`} />
-          {!collapsed && "Sign Out"}
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className={`w-full ${
-            collapsed ? "justify-center px-0" : "justify-start"
-          } text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors`} 
-          onClick={handleDeleteAccount}
-        >
-          <Trash2 className={`${collapsed ? "" : "mr-3"} h-4 w-4 shrink-0`} />
-          {!collapsed && "Delete"}
-        </Button>
-      </div>
-    </aside>
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+    </>
   );
 }

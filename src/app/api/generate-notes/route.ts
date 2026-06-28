@@ -154,6 +154,10 @@ export async function POST(req: Request) {
     }
 
     const prompt = `You are a technical mentor. Generate highly structured, comprehensive study notes in Markdown format based on the following video transcript.
+    IMPORTANT:
+Always generate the notes in fluent English, regardless of the language of the transcript.
+If the transcript is in Hindi or any other language, first understand it internally and then write the final notes entirely in English.
+Do not include any Hindi text in the output.
 
 Requirements:
 - Use proper Markdown headings

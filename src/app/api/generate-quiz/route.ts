@@ -95,6 +95,12 @@ export async function POST(req: Request) {
 Based on the following study notes, generate a short multiple-choice quiz (3-5 questions depending on the number of core concepts).
 
 Return ONLY a valid JSON array.
+IMPORTANT:
+Generate all questions, options, explanations, and answers in English only, regardless of the language spoken in the video.
+If the transcript is in Hindi or another language, understand it first and then create the quiz entirely in English.
+IMPORTANT:
+Return the complete quiz in English only.
+Never use Hindi or any other language in the output.
 
 Schema:
 

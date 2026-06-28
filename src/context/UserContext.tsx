@@ -25,20 +25,38 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // 1. Helper function to extract the Google name or Email name safely
+    const getDisplayName = (authUser: any) => {
+      return (
+        authUser.user_metadata?.username ||    // Email/Password Name
+        authUser.user_metadata?.full_name ||   // Google Account Name
+        authUser.user_metadata?.name ||        // Google Account Name fallback
+        authUser.email?.split("@")[0] ||       // Fallback to email prefix
+        "Student"
+      );
+    };
+
     async function fetchSession() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Fetch the public profile to get the username
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, username, created_at')
-            .eq('id', session.user.id)
-            .single();
+          const displayName = getDisplayName(session.user);
 
-          if (mounted && profile) {
-            setUser(profile as User);
+          // 2. We use UPDATE instead of UPSERT to avoid database crashes.
+          // Your backend trigger creates the row, we just fill in the missing Google name.
+          await supabase
+            .from("profiles")
+            .update({ username: displayName })
+            .eq("id", session.user.id);
+
+          // 3. Immediately set the user context so the UI says "Hi [Name]"
+          if (mounted) {
+            setUser({
+              id: session.user.id,
+              username: displayName,
+              created_at: new Date().toISOString()
+            });
           }
         } else {
           if (mounted) setUser(null);
@@ -55,16 +73,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Real-time listener for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, username, created_at')
-          .eq('id', session.user.id)
-          .single();
-        setUser(profile as User);
+        const displayName = getDisplayName(session.user);
+
+        // Safe update to prevent crashes
+        await supabase
+          .from("profiles")
+          .update({ username: displayName })
+          .eq("id", session.user.id);
+
+        if (mounted) {
+          setUser({
+            id: session.user.id,
+            username: displayName,
+            created_at: new Date().toISOString()
+          });
+        }
       } else {
-        setUser(null);
-      }
-      setIsLoading(false);
+        if (mounted) setUser(null);
+      } 
+      if (mounted) setIsLoading(false);
     });
 
     return () => {

@@ -16,6 +16,15 @@ import {
   ChevronRight
 } from "lucide-react";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 export default function LandingPage() {
   const router = useRouter();
   const { user, isLoading } = useUser();
@@ -26,6 +35,7 @@ export default function LandingPage() {
 
   // Auth Form State
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showBrowserDialog, setShowBrowserDialog] = useState(false);
 
   // 1. Existing useEffect: Secure redirect if already logged in
   useEffect(() => {
@@ -46,7 +56,28 @@ export default function LandingPage() {
     }
   }, []);
 
+  const isInAppBrowser = () => {
+  const ua = navigator.userAgent.toLowerCase();
+
+  return (
+    ua.includes("linkedin") ||
+    ua.includes("instagram") ||
+    ua.includes("fban") ||
+    ua.includes("fbav") ||
+    ua.includes("messenger") ||
+    ua.includes("twitter") ||
+    ua.includes("x.com") ||
+    ua.includes("snapchat") ||
+    ua.includes("wv") ||
+    ua.includes("webview")
+  );
+};
+
   const handleGoogleLogin = async () => {
+  if (isInAppBrowser()) {
+  setShowBrowserDialog(true);
+  return;
+  }
     setIsGoogleLoading(true);
 
     try {
@@ -119,6 +150,34 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
+        <Dialog
+  open={showBrowserDialog}
+  onOpenChange={setShowBrowserDialog}
+>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>
+        Open VibeLearn in your browser
+      </DialogTitle>
+
+      <DialogDescription className="pt-2">
+        Google Sign-In isn't supported inside LinkedIn and other in-app browsers.
+
+        <br />
+        <br />
+
+        Please tap the menu (<strong>⋮</strong>) and choose
+        <strong> Open in Chrome</strong> (or Safari on iPhone), then try signing in again.
+      </DialogDescription>
+    </DialogHeader>
+
+    <DialogFooter>
+      <Button onClick={() => setShowBrowserDialog(false)}>
+        Got it
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
       </div>
     );
   }

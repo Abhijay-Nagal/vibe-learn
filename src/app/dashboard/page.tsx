@@ -131,11 +131,11 @@ export default function Dashboard() {
   // The Premium Skeleton Loader
   if (isUserLoading || isLoadingData) {
     return (
-      <main className="min-h-screen p-8 md:p-24 bg-background">
+      <main className="min-h-screen pt-24 px-4 pb-8 md:pl-72 md:pt-12 md:pr-12 bg-background">
         <DashboardHeader />
-        <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-8">
+        <div className="max-w-5xl mx-auto space-y-8 animate-pulse pt-2 md:pt-8">
           <div className="h-10 w-48 bg-muted rounded"></div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-muted rounded-xl"></div>)}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
@@ -147,31 +147,34 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen p-8 md:pl-72 md:p-12 bg-background">
+    <main className="min-h-screen pt-24 px-4 pb-8 md:pl-72 md:pt-12 md:pr-12 bg-background">
       <DashboardHeader />
       
-      <div className="max-w-5xl mx-auto space-y-10 pt-8">
+      <div className="w-full max-w-5xl mx-auto space-y-8 pt-2 md:pt-8">
         
         {/* Header & Command Center Analytics */}
         <div className="space-y-6">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
+            <div className="w-full md:w-auto">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">
                 Welcome back, {user?.username}
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-sm md:text-base text-muted-foreground mt-1">
                 Your Learning Command Center.
               </p>
             </div>
 
             <Dialog>
               <DialogTrigger asChild>
-                <Button size="lg" className="shadow-sm transition-transform active:scale-95">
+                <Button
+  size="lg"
+  className="w-full md:w-auto h-12 md:h-11"
+>
                   <Plus className="mr-2 h-5 w-5" /> New Session
                 </Button>
               </DialogTrigger>
 
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md w-[95vw] rounded-xl">
                 <DialogHeader>
                   <DialogTitle>Create a New Study Session</DialogTitle>
                 </DialogHeader>
@@ -192,33 +195,33 @@ export default function Dashboard() {
           </header>
 
           {/* Analytics Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid grid-cols-2 lg:grid-cols-4 gap-4 gap-3 md:gap-4">
             <Card className="border-border shadow-sm">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-                <BookOpen className="h-6 w-6 text-primary mb-2 opacity-80" />
-                <p className="text-3xl font-bold text-foreground">{stats.totalSessions}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Total Sessions</p>
+              <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
+                <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary mb-2 opacity-80" />
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalSessions}</p>
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Total Sessions</p>
               </CardContent>
             </Card>
             <Card className="border-border shadow-sm">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-                <RotateCcw className="h-6 w-6 text-success mb-2 opacity-80" />
-                <p className="text-3xl font-bold text-foreground">{stats.completedSessions}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Mastered</p>
+              <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
+                <RotateCcw className="h-5 w-5 md:h-6 md:w-6 text-success mb-2 opacity-80" />
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.completedSessions}</p>
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Mastered</p>
               </CardContent>
             </Card>
             <Card className="border-border shadow-sm">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-                <Video className="h-6 w-6 text-primary mb-2 opacity-80" />
-                <p className="text-3xl font-bold text-foreground">{stats.totalVideos}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Videos Processed</p>
+              <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
+                <Video className="h-5 w-5 md:h-6 md:w-6 text-primary mb-2 opacity-80" />
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalVideos}</p>
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Videos Processed</p>
               </CardContent>
             </Card>
             <Card className="border-border shadow-sm">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-                <BrainCircuit className="h-6 w-6 text-ai mb-2 opacity-80" />
-                <p className="text-3xl font-bold text-foreground">{stats.totalQuizzes}</p>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Quizzes Taken</p>
+              <CardContent className="p-4 md:p-6 flex flex-col items-center justify-center text-center">
+                <BrainCircuit className="h-5 w-5 md:h-6 md:w-6 text-ai mb-2 opacity-80" />
+                <p className="text-2xl md:text-3xl font-bold text-foreground">{stats.totalQuizzes}</p>
+                <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider mt-1">Quizzes Taken</p>
               </CardContent>
             </Card>
           </div>
@@ -228,53 +231,53 @@ export default function Dashboard() {
 
         {/* Sessions Grid */}
         {sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 px-4 text-center border-2 border-dashed border-border rounded-2xl bg-card">
-            <div className="h-16 w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
-              <FolderOpen size={32} />
+          <div className="flex flex-col items-center justify-center py-12 md:py-24 px-4 text-center border-2 border-dashed border-border rounded-2xl bg-card">
+            <div className="h-14 w-14 md:h-16 md:w-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+              <FolderOpen className="h-8 w-8 md:h-10 md:w-10" />
             </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">No Study Sessions Yet</h3>
-            <p className="text-muted-foreground max-w-sm mb-6">Your workspace is empty. Create your first session to start converting YouTube videos into active knowledge.</p>
+            <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">No Study Sessions Yet</h3>
+            <p className="text-sm md:text-base text-muted-foreground max-w-sm mb-6">Your workspace is empty. Create your first session to start converting YouTube videos into active knowledge.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sessions.map((session) => (
               <Card key={session.id} className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow duration-200">
                 <CardHeader>
-                  <CardTitle className="truncate flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5 text-muted-foreground" />
-                    {session.title}
+                  <CardTitle className="truncate flex items-center gap-2 text-lg">
+                    <FolderOpen className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <span className="truncate">{session.title}</span>
                   </CardTitle>
                 </CardHeader>
 
                 <CardFooter className="flex flex-col gap-3">
                   {session.status === "active" ? (
-                    <div className="flex gap-2 w-full">
+                    <div className="flex flex-col gap-2 gap-2 w-full">
                       <Button
                         variant="default"
-                        className="w-full flex-1 shadow-sm"
+                        className="w-full sm:flex-1 shadow-sm"
                         onClick={() => router.push(`/session/${session.id}`)}
                       >
                         <PlayCircle className="mr-2 h-4 w-4" /> Continue
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full flex-1 border-destructive text-destructive hover:bg-destructive/10 shadow-sm"
+                        className="w-full sm:flex-1 border-destructive text-destructive hover:bg-destructive/10 shadow-sm"
                         onClick={() => handleEndSession(session.id)}
                       >
                         End
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex gap-2 w-full">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
                       <Button
-                        className="w-full flex-1 bg-success hover:bg-success/90 text-success-foreground shadow-sm"
+                        className="w-full sm:flex-1 bg-success hover:bg-success/90 text-success-foreground shadow-sm"
                         onClick={() => router.push(`/session/${session.id}/revision`)}
                       >
                         <RotateCcw className="mr-2 h-4 w-4" /> Revise
                       </Button>
                       <Button
                         variant="outline"
-                        className="w-full flex-1 bg-secondary/50 hover:bg-secondary text-foreground shadow-sm"
+                        className="w-full sm:flex-1 bg-secondary/50 hover:bg-secondary text-foreground shadow-sm"
                         onClick={() => router.push(`/session/${session.id}`)}
                       >
                         <BookOpen className="mr-2 h-4 w-4" /> Archive
@@ -285,7 +288,7 @@ export default function Dashboard() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    className="w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 mt-1"
                     onClick={() => handleDeleteSession(session.id)}
                   >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete Session

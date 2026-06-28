@@ -1,4 +1,16 @@
-# VibeLearn
+# VibeLearn - AI-Powered Learning Workspace
+
+**🚀 [NEW] Version 2.0 is Live!**
+VibeLearn has officially transitioned from a student MVP to a production-grade SaaS workspace. 
+* **Legacy MVP Branch:** Want to see where this started? [Click here to view the v1.0 MVP code](#).
+* **V2 Demo Video:** [Link to your NEW YouTube video]
+* **V1 Legacy Demo:** [Link to your old YouTube video]
+
+### What's new in V2.0?
+* **PostgreSQL RPC Analytics:** Bypassed Vercel serverless timeouts by writing custom database functions to aggregate user study streaks and mastery metrics in milliseconds.
+* **Premium Workspace UI:** Redesigned the study session into a mutually exclusive, distraction-free environment using Tailwind CSS and Radix UI primitives.
+* **Semantic Dark Mode:** Engineered a high-contrast Slate theme to reduce eye strain during late-night study sessions.
+* **Adaptive Revision Loop:** Visualized user knowledge gaps with dynamic tagging and seamless LLM-generated targeted quizzes.
 
 AI-Powered Personalized Learning and Adaptive Revision Platform
 

@@ -11,9 +11,9 @@
 
 VibeLearn is an AI-powered learning platform that transforms educational YouTube videos into structured study notes, AI-generated quizzes, and adaptive revision sessions. Built with Next.js, Supabase, PostgreSQL, and Llama 3.3, it helps students move beyond passive video consumption toward active learning.
 
-🌐 **Live Application:** [VibeLearn Live]https://vibe-learn-vert.vercel.app
+🌐 **Live Application:** https://vibe-learn-vert.vercel.app
 
-🎥 **Demo Video:** [Watch on YouTube]https://www.youtube.com/watch?v=QPJMyy4IJ7c
+🎥 **Demo Video:** https://www.youtube.com/watch?v=QPJMyy4IJ7c
 
 ---
 
@@ -54,7 +54,7 @@ To preserve the project's engineering journey, the original implementation has b
 
 🔗 **Legacy Branch (Version 1):**
 
-**Legacy MVP Branch:** [Version 1.0]https://github.com/Abhijay-Nagal/vibe-learn/tree/legacy-v1-mvp
+https://github.com/Abhijay-Nagal/vibe-learn/tree/legacy-v1-mvp
 
 ---
 
@@ -64,7 +64,7 @@ Version 2.0 transforms the original MVP into a significantly more scalable and p
 
 🔗 **Main Branch:**
 
-🔗 **GitHub Repository:** [View Repository]https://github.com/Abhijay-Nagal/vibe-learn
+https://github.com/Abhijay-Nagal/vibe-learn
 
 ---
 
@@ -346,7 +346,7 @@ https://github.com/Abhijay-Nagal
 
 **LinkedIn**
 
-**LinkedIn:** [Abhijay Nagal](https://www.linkedin.com/in/abhijay-nagal)
+https://www.linkedin.com/in/abhijay-nagal
 
 ---
 
